@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.santlal7284_max.twa",
+        "sha256_cert_fingerprints": ["49:2A:33:3A:81:3A:6B:97:10:02:CD:9E:3E:43:A7:FF:25:73:60:08:63:57:C6:06:1E:90:59:90:7F:A7:6D:A2"]
+      }
+    }]
