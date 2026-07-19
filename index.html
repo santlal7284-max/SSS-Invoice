@@ -117,13 +117,6 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 .paper .num{text-align:right;}
 .paper .totalrow td{font-weight:700;}
 
-@media print{
-  body *{visibility:hidden;}
-  #printArea, #printArea *{visibility:visible;}
-  #printArea{position:absolute !important; top:0 !important; left:0 !important; width:100%; padding:0; margin:0; border:none;}
-  .tabbar, .topbar{display:none !important;}
-}
-
 .toast{position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 18px; border-radius:30px; font-size:13.5px; font-weight:600; z-index:60; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
 
@@ -238,9 +231,6 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 </div>
 
 <div class="toast" id="toast"></div>
-
-<!-- Hidden print-ready invoice -->
-<div id="printArea" style="position:fixed; left:-9999px; top:0;"></div>
 
 <script src="data.js"></script>
 <script>
@@ -650,8 +640,36 @@ function invoiceHtml(inv){
 }
 
 function printInvoice(inv){
-  document.getElementById('printArea').innerHTML = invoiceHtml(inv);
-  window.print();
+  const html = invoiceHtml(inv);
+  const printCss = `
+    *{box-sizing:border-box;}
+    body{font-family:Arial,sans-serif; margin:0; padding:16px; color:#16233A;}
+    .paper{font-size:12.5px;}
+    .paper .ph{text-align:center; font-weight:700; font-size:16px; letter-spacing:0.06em; border-bottom:2px solid #12253F; padding-bottom:8px; margin-bottom:8px;}
+    .paper table{width:100%; border-collapse:collapse; margin:8px 0; font-size:11.5px;}
+    .paper th, .paper td{border:1px solid #999; padding:4px 5px; text-align:left;}
+    .paper th{background:#EDF1F6;}
+    .paper .num{text-align:right;}
+    .paper .totalrow td{font-weight:700;}
+  `;
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice</title><style>' + printCss + '</style></head><body>' + html + '</body></html>');
+  doc.close();
+  const doPrint = () => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => { if(iframe.parentNode) document.body.removeChild(iframe); }, 1500);
+  };
+  if(doc.readyState === 'complete'){ doPrint(); } else { iframe.onload = doPrint; }
 }
 
 /* ===================== History view ===================== */
