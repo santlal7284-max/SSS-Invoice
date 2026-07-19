@@ -322,11 +322,14 @@ const cats = [...new Set(PARTS_CACHE.map(p=>p.cat))].sort();
 cats.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; catFilter.appendChild(o); });
 
 let visibleCount = 40;
+function norm(str){
+  return String(str||'').toLowerCase().replace(/[\s\-_.\/,()]+/g,'');
+}
 function matchesSearch(p, q, cat){
   if(cat && p.cat !== cat) return false;
   if(!q) return true;
-  q = q.toLowerCase();
-  return p.code.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q);
+  const nq = norm(q);
+  return norm(p.code).includes(nq) || norm(p.desc).includes(nq);
 }
 
 function renderPartList(){
@@ -484,10 +487,11 @@ document.getElementById('itemsContainer').addEventListener('input', (e)=>{
   const i = +idx;
   if(t.classList.contains('ac-input')){
     currentItems[i].code = t.value;
-    const q = t.value.trim().toLowerCase();
+    const q = t.value.trim();
     const resBox = document.querySelector(`.ac-results[data-idx="${i}"]`);
     if(q.length < 2){ resBox.innerHTML=''; return; }
-    const matches = PARTS_CACHE.filter(p=>p.code.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)).slice(0,15);
+    const nq = norm(q);
+    const matches = PARTS_CACHE.filter(p=>norm(p.code).includes(nq) || norm(p.desc).includes(nq)).slice(0,15);
     if(matches.length===0){ resBox.innerHTML=''; return; }
     resBox.innerHTML = '<div class="ac-list">' + matches.map(m=>
       `<div class="ac-item" data-idx="${i}" data-code="${esc(m.code)}"><span class="c mono">${esc(m.code)}</span> — ${esc(m.desc)} <span style="color:var(--text-dim)">(₹${m.cbasic})</span></div>`
