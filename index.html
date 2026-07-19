@@ -176,7 +176,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-outline" style="flex:1" id="printInvoiceBtn">🖨 Print / PDF</button>
+      <button class="btn btn-outline" style="flex:1" id="printInvoiceBtn">⬇ Download PDF</button>
       <button class="btn btn-primary" style="flex:1" id="saveInvoiceBtn">Invoice Save Karein</button>
     </div>
   </div>
@@ -232,6 +232,8 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="data.js"></script>
 <script>
 /* ===================== Storage helpers ===================== */
@@ -641,45 +643,41 @@ function invoiceHtml(inv){
 
 function printInvoice(inv){
   const html = invoiceHtml(inv);
-  const printCss = `
-    *{box-sizing:border-box;}
-    @page{size:auto; margin:10mm;}
-    html,body{margin:0; padding:0;}
-    body{font-family:Arial,sans-serif; padding:0; color:#16233A;}
-    .paper{font-size:12.5px;}
-    .paper .ph{text-align:center; font-weight:700; font-size:16px; letter-spacing:0.06em; border-bottom:2px solid #12253F; padding-bottom:8px; margin-bottom:8px;}
-    .paper table{width:100%; border-collapse:collapse; margin:8px 0; font-size:11.5px;}
-    .paper th, .paper td{border:1px solid #999; padding:4px 5px; text-align:left;}
-    .paper th{background:#EDF1F6;}
-    .paper .num{text-align:right;}
-    .paper .totalrow td{font-weight:700;}
-  `;
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  document.body.appendChild(iframe);
-  const doc = iframe.contentWindow.document;
-  doc.open();
-  doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice</title><style>' + printCss + '</style></head><body>' + html + '</body></html>');
-  doc.close();
-  const doPrint = () => {
-    iframe.contentWindow.focus();
-    let removed = false;
-    const cleanup = () => {
-      if(removed) return;
-      removed = true;
-      if(iframe.parentNode) document.body.removeChild(iframe);
-    };
-    iframe.contentWindow.onafterprint = cleanup;
-    iframe.contentWindow.print();
-    // Fallback safety net in case 'afterprint' never fires on some browsers
-    setTimeout(cleanup, 60000);
-  };
-  if(doc.readyState === 'complete'){ doPrint(); } else { iframe.onload = doPrint; }
+  let holder = document.getElementById('pdfRenderHolder');
+  if(!holder){
+    holder = document.createElement('div');
+    holder.id = 'pdfRenderHolder';
+    holder.style.position = 'fixed';
+    holder.style.left = '-9999px';
+    holder.style.top = '0';
+    holder.style.width = '750px';
+    holder.style.background = '#fff';
+    document.body.appendChild(holder);
+  }
+  holder.innerHTML = html;
+  toast('PDF taiyar ho raha hai…');
+  html2canvas(holder, { scale: 2, backgroundColor: '#ffffff' }).then((canvas) => {
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = 210, pageHeight = 297;
+    const margin = 8;
+    const usableWidth = pageWidth - margin * 2;
+    const imgHeightMM = (canvas.height * usableWidth) / canvas.width;
+    let heightLeft = imgHeightMM;
+    let position = margin;
+    pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeightMM);
+    heightLeft -= (pageHeight - margin * 2);
+    while(heightLeft > 0){
+      position = heightLeft - imgHeightMM + margin;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeightMM);
+      heightLeft -= (pageHeight - margin * 2);
+    }
+    pdf.save('Invoice-' + (inv.invoiceNo || 'draft') + '.pdf');
+  }).catch(() => {
+    alert('PDF banane mein dikkat aayi. Internet connection check kariye aur dobara try kariye.');
+  });
 }
 
 /* ===================== History view ===================== */
@@ -698,7 +696,7 @@ function renderHistory(){
       <div class="sub">${esc(inv.buyer.name)}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
-        <button class="btn btn-outline" data-print="${idx}">🖨 Print</button>
+        <button class="btn btn-outline" data-print="${idx}">⬇ PDF</button>
         <button class="btn btn-danger" data-del="${idx}">Delete</button>
       </div>`;
     box.appendChild(div);
