@@ -408,7 +408,13 @@ document.getElementById('addPartBtn').addEventListener('click', ()=>{
 /* ===================== Invoice view ===================== */
 let currentItems = []; // {code, desc, hsn, qty, rate, manual}
 
-function newItem(){ return {code:'', desc:'', hsn:'', qty:1, rate:0, manual:false}; }
+function newItem(){ return {code:'', desc:'', hsn:'', qty:1, rate:0, manual:false, taxIncl:false}; }
+
+function itemTaxable(it){
+  const gstPct = parseFloat(settings.gstRate)||18;
+  const amt = (it.qty||0)*(it.rate||0);
+  return it.taxIncl ? amt/(1+gstPct/100) : amt;
+}
 
 function addItemRow(item){
   currentItems.push(item || newItem());
@@ -427,7 +433,7 @@ function renderItems(){
   const box = document.getElementById('itemsContainer');
   box.innerHTML = '';
   currentItems.forEach((it, idx)=>{
-    const taxable = (it.qty||0) * (it.rate||0);
+    const taxable = itemTaxable(it);
     const div = document.createElement('div');
     div.className = 'item-card';
     div.innerHTML = `
@@ -447,9 +453,13 @@ function renderItems(){
       <div class="item-grid">
         <div class="field" style="margin-bottom:0;"><label>HSN/SAC</label><input type="text" class="it-hsn" data-idx="${idx}" value="${esc(it.hsn || '')}"></div>
         <div class="field" style="margin-bottom:0;"><label>Qty</label><input type="number" step="1" min="0" class="it-qty" data-idx="${idx}" value="${it.qty}"></div>
-        <div class="field" style="margin-bottom:0;"><label>Rate ₹</label><input type="number" step="0.01" class="it-rate" data-idx="${idx}" value="${it.rate}"></div>
+        <div class="field" style="margin-bottom:0;"><label>${it.taxIncl?'Amount (with tax) ₹':'Rate ₹'}</label><input type="number" step="0.01" class="it-rate" data-idx="${idx}" value="${it.rate}"></div>
       </div>
-      <div class="item-line-total">Taxable Value: <b>₹${taxable.toFixed(2)}</b></div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-dim); margin-top:8px;">
+        <input type="checkbox" class="it-taxincl" data-idx="${idx}" ${it.taxIncl?'checked':''}>
+        Yeh amount tax included hai (without-tax khud calculate hoga)
+      </label>
+      <div class="item-line-total">Taxable Value (without tax): <b>₹${taxable.toFixed(2)}</b></div>
     `;
     box.appendChild(div);
   });
@@ -503,9 +513,18 @@ document.getElementById('itemsContainer').addEventListener('input', (e)=>{
   }
 });
 
+document.getElementById('itemsContainer').addEventListener('change', (e)=>{
+  const t = e.target;
+  if(t.classList.contains('it-taxincl')){
+    const i = +t.dataset.idx;
+    currentItems[i].taxIncl = t.checked;
+    renderItems();
+  }
+});
+
 function updateLineTotal(i){
   const el = document.querySelectorAll('.item-line-total b')[i];
-  if(el) el.textContent = '₹' + ((currentItems[i].qty||0)*(currentItems[i].rate||0)).toFixed(2);
+  if(el) el.textContent = '₹' + itemTaxable(currentItems[i]).toFixed(2);
 }
 
 // close autocomplete list on outside click
@@ -518,7 +537,7 @@ document.addEventListener('click', (e)=>{
 function renderTotals(){
   const gst = computeGst();
   let taxable = 0;
-  currentItems.forEach(it=>{ taxable += (it.qty||0)*(it.rate||0); });
+  currentItems.forEach(it=>{ taxable += itemTaxable(it); });
   const cgstAmt = taxable*gst.cgst/100, sgstAmt = taxable*gst.sgst/100, igstAmt = taxable*gst.igst/100;
   const grand = taxable + cgstAmt + sgstAmt + igstAmt;
   const rounded = Math.round(grand);
@@ -597,9 +616,11 @@ function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
 
 function invoiceHtml(inv){
   const gst = inv.totals.gst;
+  const gstPctUsed = gst.intra ? (gst.cgst + gst.sgst) : gst.igst;
   let rows = '';
   inv.items.forEach((it,i)=>{
-    const tax = (it.qty||0)*(it.rate||0);
+    const amt = (it.qty||0)*(it.rate||0);
+    const tax = it.taxIncl ? amt/(1+gstPctUsed/100) : amt;
     rows += `<tr><td>${i+1}</td><td>${esc(it.desc)}${it.code?' <span style=\"color:#777\">('+esc(it.code)+')</span>':''}</td><td>${esc(it.hsn||'')}</td><td class="num">${it.qty}</td><td class="num">${fmt(it.rate)}</td><td class="num">${fmt(tax)}</td></tr>`;
   });
   return `
