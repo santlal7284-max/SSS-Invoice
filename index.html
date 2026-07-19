@@ -668,8 +668,16 @@ function printInvoice(inv){
   doc.close();
   const doPrint = () => {
     iframe.contentWindow.focus();
+    let removed = false;
+    const cleanup = () => {
+      if(removed) return;
+      removed = true;
+      if(iframe.parentNode) document.body.removeChild(iframe);
+    };
+    iframe.contentWindow.onafterprint = cleanup;
     iframe.contentWindow.print();
-    setTimeout(() => { if(iframe.parentNode) document.body.removeChild(iframe); }, 1500);
+    // Fallback safety net in case 'afterprint' never fires on some browsers
+    setTimeout(cleanup, 60000);
   };
   if(doc.readyState === 'complete'){ doPrint(); } else { iframe.onload = doPrint; }
 }
