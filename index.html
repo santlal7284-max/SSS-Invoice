@@ -215,6 +215,19 @@ input,select,textarea{font-family:inherit; font-size:15px;}
     </div>
 
     <div class="card">
+      <h3>Authorised Signature</h3>
+      <p style="font-size:13px; color:var(--text-dim); margin-top:0;">Apne sign ki photo daal dijiye — yeh har invoice ke neeche automatically aa jayega.</p>
+      <div id="signaturePreviewBox" style="display:none; margin-bottom:10px; text-align:center; border:1.5px dashed var(--border); border-radius:8px; padding:10px;">
+        <img id="signaturePreviewImg" style="max-height:70px; max-width:100%;">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-outline" style="flex:1" id="uploadSignBtn">📷 Sign Upload Karein</button>
+        <button class="btn btn-danger" style="flex:1" id="removeSignBtn">Hataye</button>
+      </div>
+      <input type="file" id="signFile" accept="image/*" style="display:none;">
+    </div>
+
+    <div class="card">
       <h3>Data Backup</h3>
       <p style="font-size:13px; color:var(--text-dim); margin-top:0;">Apna price edits, invoices aur settings ka backup lein ya restore karein.</p>
       <div class="btn-row">
@@ -255,7 +268,8 @@ const DEFAULT_SETTINGS = {
   pan: 'AWEPR6592C',
   gstRate: 18,
   prefix: 'SSS/07/TM/',
-  nextNum: 31
+  nextNum: 31,
+  signatureImage: ''
 };
 
 let settings = LS.get('sss_settings', DEFAULT_SETTINGS);
@@ -676,7 +690,7 @@ function invoiceHtml(inv){
       </tfoot>
     </table>
     <div style="margin-top:20px; display:flex; justify-content:flex-end;">
-      <div style="text-align:center;">For ${esc(settings.companyName)}<br><br><br>Authorised Signatory</div>
+      <div style="text-align:center;">For ${esc(settings.companyName)}<br>${settings.signatureImage ? '<img src="'+settings.signatureImage+'" style="max-height:55px; max-width:160px; display:block; margin:4px auto;">' : '<br><br><br>'}Authorised Signatory</div>
     </div>
   </div>`;
 }
@@ -798,7 +812,39 @@ function loadSettingsForm(){
   document.getElementById('setGstRate').value = settings.gstRate;
   document.getElementById('setPrefix').value = settings.prefix;
   document.getElementById('setNextNum').value = settings.nextNum;
+  updateSignaturePreview();
 }
+
+function updateSignaturePreview(){
+  const box = document.getElementById('signaturePreviewBox');
+  const img = document.getElementById('signaturePreviewImg');
+  if(settings.signatureImage){
+    img.src = settings.signatureImage;
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+document.getElementById('uploadSignBtn').addEventListener('click', ()=>document.getElementById('signFile').click());
+document.getElementById('signFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    settings.signatureImage = ev.target.result;
+    LS.set('sss_settings', settings);
+    updateSignaturePreview();
+    toast('Sign save ho gaya');
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('removeSignBtn').addEventListener('click', ()=>{
+  settings.signatureImage = '';
+  LS.set('sss_settings', settings);
+  updateSignaturePreview();
+  toast('Sign hata diya gaya');
+});
 
 document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{
   settings = {
@@ -811,7 +857,8 @@ document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{
     pan: document.getElementById('setPan').value,
     gstRate: parseFloat(document.getElementById('setGstRate').value)||18,
     prefix: document.getElementById('setPrefix').value,
-    nextNum: parseInt(document.getElementById('setNextNum').value)||1
+    nextNum: parseInt(document.getElementById('setNextNum').value)||1,
+    signatureImage: settings.signatureImage || ''
   };
   LS.set('sss_settings', settings);
   toast('Settings save ho gayi');
