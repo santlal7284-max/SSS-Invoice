@@ -177,7 +177,10 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 
     <div class="btn-row">
       <button class="btn btn-outline" style="flex:1" id="printInvoiceBtn">⬇ Download PDF</button>
-      <button class="btn btn-primary" style="flex:1" id="saveInvoiceBtn">Invoice Save Karein</button>
+      <button class="btn btn-outline" style="flex:1" id="shareInvoiceBtn">📤 Share</button>
+    </div>
+    <div class="btn-row" style="margin-top:8px;">
+      <button class="btn btn-primary btn-block" id="saveInvoiceBtn">Invoice Save Karein</button>
     </div>
   </div>
 
@@ -612,6 +615,22 @@ document.getElementById('printInvoiceBtn').addEventListener('click', ()=>{
   });
 });
 
+document.getElementById('shareInvoiceBtn').addEventListener('click', ()=>{
+  const totals = renderTotals();
+  shareInvoice({
+    invoiceNo: document.getElementById('invoiceNo').value,
+    date: document.getElementById('invoiceDate').value,
+    buyer: {
+      name: document.getElementById('buyerName').value,
+      address: document.getElementById('buyerAddress').value,
+      gstin: document.getElementById('buyerGstin').value,
+      stateCode: document.getElementById('buyerState').value
+    },
+    items: currentItems.filter(it=>it.desc && it.qty>0),
+    totals
+  });
+});
+
 function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
 
 function invoiceHtml(inv){
@@ -662,7 +681,7 @@ function invoiceHtml(inv){
   </div>`;
 }
 
-function printInvoice(inv){
+function buildInvoicePdf(inv){
   const html = invoiceHtml(inv);
   let holder = document.getElementById('pdfRenderHolder');
   if(!holder){
@@ -676,8 +695,7 @@ function printInvoice(inv){
     document.body.appendChild(holder);
   }
   holder.innerHTML = html;
-  toast('PDF taiyar ho raha hai…');
-  html2canvas(holder, { scale: 2, backgroundColor: '#ffffff' }).then((canvas) => {
+  return html2canvas(holder, { scale: 2, backgroundColor: '#ffffff' }).then((canvas) => {
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -695,7 +713,35 @@ function printInvoice(inv){
       pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeightMM);
       heightLeft -= (pageHeight - margin * 2);
     }
+    return pdf;
+  });
+}
+
+function printInvoice(inv){
+  toast('PDF taiyar ho raha hai…');
+  buildInvoicePdf(inv).then((pdf) => {
     pdf.save('Invoice-' + (inv.invoiceNo || 'draft') + '.pdf');
+  }).catch(() => {
+    alert('PDF banane mein dikkat aayi. Internet connection check kariye aur dobara try kariye.');
+  });
+}
+
+function shareInvoice(inv){
+  toast('PDF taiyar ho raha hai…');
+  buildInvoicePdf(inv).then((pdf) => {
+    const blob = pdf.output('blob');
+    const fileName = 'Invoice-' + (inv.invoiceNo || 'draft') + '.pdf';
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      navigator.share({
+        files: [file],
+        title: 'Invoice ' + (inv.invoiceNo || ''),
+        text: 'Invoice ' + (inv.invoiceNo || '') + ' - ' + settings.companyName
+      }).catch(() => {});
+    } else {
+      alert('Is device par direct share support nahi hai. "Download PDF" use karke phir WhatsApp se manually attach kar dijiye.');
+      pdf.save(fileName);
+    }
   }).catch(() => {
     alert('PDF banane mein dikkat aayi. Internet connection check kariye aur dobara try kariye.');
   });
@@ -718,6 +764,7 @@ function renderHistory(){
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
         <button class="btn btn-outline" data-print="${idx}">⬇ PDF</button>
+        <button class="btn btn-outline" data-share="${idx}">📤 Share</button>
         <button class="btn btn-danger" data-del="${idx}">Delete</button>
       </div>`;
     box.appendChild(div);
@@ -727,6 +774,8 @@ function renderHistory(){
 document.getElementById('historyList').addEventListener('click', (e)=>{
   const pb = e.target.closest('[data-print]');
   if(pb){ printInvoice(invoices[+pb.dataset.print]); return; }
+  const sb = e.target.closest('[data-share]');
+  if(sb){ shareInvoice(invoices[+sb.dataset.share]); return; }
   const db = e.target.closest('[data-del]');
   if(db){
     if(confirm('Yeh invoice delete karein?')){
