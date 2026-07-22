@@ -163,6 +163,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
         <div class="field"><label>Invoice No.</label><input id="invoiceNo"></div>
         <div class="field"><label>Date</label><input id="invoiceDate" type="date"></div>
       </div>
+      <div class="field"><label>Discount %</label><input id="invoiceDiscount" type="number" step="0.01" min="0" max="100" placeholder="0"></div>
     </div>
 
     <div class="card">
@@ -559,25 +560,31 @@ document.addEventListener('click', (e)=>{
 
 function renderTotals(){
   const gst = computeGst();
-  let taxable = 0;
-  currentItems.forEach(it=>{ taxable += itemTaxable(it); });
+  let rawTaxable = 0;
+  currentItems.forEach(it=>{ rawTaxable += itemTaxable(it); });
+  const discountPct = parseFloat(document.getElementById('invoiceDiscount').value)||0;
+  const discountAmt = rawTaxable * discountPct / 100;
+  const taxable = rawTaxable - discountAmt;
   const cgstAmt = taxable*gst.cgst/100, sgstAmt = taxable*gst.sgst/100, igstAmt = taxable*gst.igst/100;
   const grand = taxable + cgstAmt + sgstAmt + igstAmt;
   const rounded = Math.round(grand);
   const roundOff = rounded - grand;
   const box = document.getElementById('invoiceTotals');
   box.innerHTML = `
-    <div class="r"><span>Taxable Value</span><span>₹${taxable.toFixed(2)}</span></div>
+    <div class="r"><span>Taxable Value (before discount)</span><span>₹${rawTaxable.toFixed(2)}</span></div>
+    ${discountPct>0 ? `<div class="r"><span>Discount @ ${discountPct}%</span><span>−₹${discountAmt.toFixed(2)}</span></div>
+    <div class="r"><span>Taxable Value (after discount)</span><span>₹${taxable.toFixed(2)}</span></div>` : ''}
     ${gst.intra ? `<div class="r"><span>CGST @ ${gst.cgst}%</span><span>₹${cgstAmt.toFixed(2)}</span></div>
     <div class="r"><span>SGST @ ${gst.sgst}%</span><span>₹${sgstAmt.toFixed(2)}</span></div>`
     : `<div class="r"><span>IGST @ ${gst.igst}%</span><span>₹${igstAmt.toFixed(2)}</span></div>`}
     <div class="r"><span>Round off</span><span>₹${roundOff.toFixed(2)}</span></div>
     <div class="r grand"><span>Total Invoice Value</span><span>₹${rounded.toFixed(2)}</span></div>
   `;
-  return { taxable, cgstAmt, sgstAmt, igstAmt, rounded, gst };
+  return { rawTaxable, discountPct, discountAmt, taxable, cgstAmt, sgstAmt, igstAmt, rounded, gst };
 }
 
 document.getElementById('buyerState').addEventListener('input', renderTotals);
+document.getElementById('invoiceDiscount').addEventListener('input', renderTotals);
 
 function resetInvoiceForm(){
   document.getElementById('buyerName').value='';
@@ -586,6 +593,7 @@ function resetInvoiceForm(){
   document.getElementById('buyerState').value='';
   document.getElementById('invoiceNo').value = (settings.prefix||'') + settings.nextNum;
   document.getElementById('invoiceDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('invoiceDiscount').value = '';
   currentItems = [newItem()];
   renderItems();
 }
@@ -688,7 +696,9 @@ function invoiceHtml(inv){
       <thead><tr><th>Sr</th><th>Description</th><th>HSN</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Taxable</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot>
-        <tr class="totalrow"><td colspan="5" class="num">Taxable Value</td><td class="num">${fmt(inv.totals.taxable)}</td></tr>
+        <tr class="totalrow"><td colspan="5" class="num">Taxable Value${(inv.totals.discountPct>0) ? ' (before discount)' : ''}</td><td class="num">${fmt(inv.totals.rawTaxable ?? inv.totals.taxable)}</td></tr>
+        ${(inv.totals.discountPct>0) ? `<tr><td colspan="5" class="num">Discount @ ${inv.totals.discountPct}%</td><td class="num">−${fmt(inv.totals.discountAmt)}</td></tr>
+        <tr class="totalrow"><td colspan="5" class="num">Taxable Value (after discount)</td><td class="num">${fmt(inv.totals.taxable)}</td></tr>` : ''}
         ${gst.intra ? `<tr><td colspan="5" class="num">CGST @ ${gst.cgst}%</td><td class="num">${fmt(inv.totals.cgstAmt)}</td></tr>
         <tr><td colspan="5" class="num">SGST @ ${gst.sgst}%</td><td class="num">${fmt(inv.totals.sgstAmt)}</td></tr>`
         : `<tr><td colspan="5" class="num">IGST @ ${gst.igst}%</td><td class="num">${fmt(inv.totals.igstAmt)}</td></tr>`}
