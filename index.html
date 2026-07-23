@@ -157,7 +157,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
       <div class="field"><label>Address</label><input id="buyerAddress" placeholder="Address"></div>
       <div class="row2">
         <div class="field"><label>GSTIN</label><input id="buyerGstin" placeholder="07AABCXXXXXP1ZD"></div>
-        <div class="field"><label>State Code</label><input id="buyerState" placeholder="07" maxlength="2"></div>
+        <div class="field"><label>State Code</label><input id="buyerState" placeholder="06" maxlength="2"></div>
       </div>
       <div class="row2">
         <div class="field"><label>Invoice No.</label><input id="invoiceNo"></div>
@@ -172,6 +172,13 @@ input,select,textarea{font-family:inherit; font-size:15px;}
     </div>
 
     <div class="card">
+      <div class="field">
+        <label>Bill Type</label>
+        <select id="gstToggle">
+          <option value="with">With GST</option>
+          <option value="without">Without GST</option>
+        </select>
+      </div>
       <div class="field"><label>Discount %</label><input id="invoiceDiscount" type="number" step="0.01" min="0" max="100" placeholder="0"></div>
       <div class="totals" id="invoiceTotals"></div>
     </div>
@@ -446,11 +453,13 @@ function addItemRow(item){
 }
 
 function computeGst(){
+  const gstOn = document.getElementById('gstToggle').value !== 'without';
+  if(!gstOn){ return { intra:false, cgst:0, sgst:0, igst:0, gstOn:false }; }
   const seller = (settings.stateCode||'').trim();
   const buyer = (document.getElementById('buyerState').value||'').trim();
   const gstRate = parseFloat(settings.gstRate)||18;
   const intra = seller && buyer && seller === buyer;
-  return { intra, cgst: intra?gstRate/2:0, sgst: intra?gstRate/2:0, igst: intra?0:gstRate };
+  return { intra, cgst: intra?gstRate/2:0, sgst: intra?gstRate/2:0, igst: intra?0:gstRate, gstOn:true };
 }
 
 function renderItems(){
@@ -574,9 +583,9 @@ function renderTotals(){
     <div class="r"><span>Taxable Value (before discount)</span><span>₹${rawTaxable.toFixed(2)}</span></div>
     ${discountPct>0 ? `<div class="r"><span>Discount @ ${discountPct}%</span><span>−₹${discountAmt.toFixed(2)}</span></div>
     <div class="r"><span>Taxable Value (after discount)</span><span>₹${taxable.toFixed(2)}</span></div>` : ''}
-    ${gst.intra ? `<div class="r"><span>CGST @ ${gst.cgst}%</span><span>₹${cgstAmt.toFixed(2)}</span></div>
+    ${gst.gstOn ? (gst.intra ? `<div class="r"><span>CGST @ ${gst.cgst}%</span><span>₹${cgstAmt.toFixed(2)}</span></div>
     <div class="r"><span>SGST @ ${gst.sgst}%</span><span>₹${sgstAmt.toFixed(2)}</span></div>`
-    : `<div class="r"><span>IGST @ ${gst.igst}%</span><span>₹${igstAmt.toFixed(2)}</span></div>`}
+    : `<div class="r"><span>IGST @ ${gst.igst}%</span><span>₹${igstAmt.toFixed(2)}</span></div>`) : ''}
     <div class="r"><span>Round off</span><span>₹${roundOff.toFixed(2)}</span></div>
     <div class="r grand"><span>Total Invoice Value</span><span>₹${rounded.toFixed(2)}</span></div>
   `;
@@ -585,15 +594,17 @@ function renderTotals(){
 
 document.getElementById('buyerState').addEventListener('input', renderTotals);
 document.getElementById('invoiceDiscount').addEventListener('input', renderTotals);
+document.getElementById('gstToggle').addEventListener('change', renderTotals);
 
 function resetInvoiceForm(){
   document.getElementById('buyerName').value='';
   document.getElementById('buyerAddress').value='';
   document.getElementById('buyerGstin').value='';
-  document.getElementById('buyerState').value='';
+  document.getElementById('buyerState').value='06';
   document.getElementById('invoiceNo').value = (settings.prefix||'') + settings.nextNum;
   document.getElementById('invoiceDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('invoiceDiscount').value = '';
+  document.getElementById('gstToggle').value = 'with';
   currentItems = [newItem()];
   renderItems();
 }
@@ -663,7 +674,8 @@ function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
 
 function invoiceHtml(inv){
   const gst = inv.totals.gst;
-  const gstPctUsed = gst.intra ? (gst.cgst + gst.sgst) : gst.igst;
+  const gstOn = gst.gstOn !== false;
+  const gstPctUsed = gstOn ? (gst.intra ? (gst.cgst + gst.sgst) : gst.igst) : 0;
   let rows = '';
   inv.items.forEach((it,i)=>{
     const amt = (it.qty||0)*(it.rate||0);
@@ -672,7 +684,7 @@ function invoiceHtml(inv){
   });
   return `
   <div class="paper">
-    <div class="ph">TAX INVOICE</div>
+    <div class="ph">${gstOn ? 'TAX INVOICE' : 'INVOICE'}</div>
     <div style="text-align:center; font-weight:700; font-size:16px;">${esc(settings.companyName)}</div>
     <div style="text-align:center; font-size:11px;">${esc(settings.address)}</div>
     <div style="text-align:center; font-size:11px;">Contact: ${esc(settings.contact)} &nbsp; Email: ${esc(settings.email)}</div>
@@ -699,9 +711,9 @@ function invoiceHtml(inv){
         <tr class="totalrow"><td colspan="5" class="num">Taxable Value${(inv.totals.discountPct>0) ? ' (before discount)' : ''}</td><td class="num">${fmt(inv.totals.rawTaxable ?? inv.totals.taxable)}</td></tr>
         ${(inv.totals.discountPct>0) ? `<tr><td colspan="5" class="num">Discount @ ${inv.totals.discountPct}%</td><td class="num">−${fmt(inv.totals.discountAmt)}</td></tr>
         <tr class="totalrow"><td colspan="5" class="num">Taxable Value (after discount)</td><td class="num">${fmt(inv.totals.taxable)}</td></tr>` : ''}
-        ${gst.intra ? `<tr><td colspan="5" class="num">CGST @ ${gst.cgst}%</td><td class="num">${fmt(inv.totals.cgstAmt)}</td></tr>
+        ${gstOn ? (gst.intra ? `<tr><td colspan="5" class="num">CGST @ ${gst.cgst}%</td><td class="num">${fmt(inv.totals.cgstAmt)}</td></tr>
         <tr><td colspan="5" class="num">SGST @ ${gst.sgst}%</td><td class="num">${fmt(inv.totals.sgstAmt)}</td></tr>`
-        : `<tr><td colspan="5" class="num">IGST @ ${gst.igst}%</td><td class="num">${fmt(inv.totals.igstAmt)}</td></tr>`}
+        : `<tr><td colspan="5" class="num">IGST @ ${gst.igst}%</td><td class="num">${fmt(inv.totals.igstAmt)}</td></tr>`) : ''}
         <tr class="totalrow"><td colspan="5" class="num">TOTAL INVOICE VALUE</td><td class="num">₹${fmt(inv.totals.rounded)}</td></tr>
       </tfoot>
     </table>
