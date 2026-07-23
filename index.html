@@ -126,6 +126,17 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 .hist-row .amt{font-size:17px; font-weight:700; margin-top:6px;}
 .hist-actions{display:flex; gap:6px; margin-top:8px;}
 .hist-actions button{flex:1; padding:7px; font-size:12.5px; border-radius:6px;}
+
+/* review / recheck modal */
+.review-overlay{display:none; position:fixed; inset:0; background:rgba(18,37,63,0.55); z-index:80; align-items:flex-end; justify-content:center;}
+.review-card{background:#fff; width:100%; max-width:520px; max-height:82vh; overflow-y:auto; border-radius:16px 16px 0 0; padding:18px 16px calc(18px + env(safe-area-inset-bottom));}
+.review-card h3{margin:0 0 2px; color:var(--navy);}
+.review-list{max-height:45vh; overflow-y:auto;}
+.review-row{border-bottom:1px solid var(--border); padding:9px 0;}
+.review-desc{font-size:13.5px; font-weight:600; color:var(--text);}
+.review-calc{font-size:13px; color:var(--text-dim); margin-top:3px;}
+.review-rate{background:#FFF3D6; color:var(--amber-dark); font-weight:700; padding:1px 6px; border-radius:5px;}
+.review-grand{display:flex; justify-content:space-between; font-size:17px; font-weight:700; color:var(--navy); border-top:2px solid var(--navy); margin-top:10px; padding-top:10px;}
 </style>
 </head>
 <body>
@@ -255,6 +266,19 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="review-overlay" id="reviewModal">
+  <div class="review-card">
+    <h3>Recheck Prices</h3>
+    <p style="font-size:12.5px; color:var(--text-dim); margin:0 0 10px;">Please review each item's rate before continuing.</p>
+    <div id="reviewItemList" class="review-list"></div>
+    <div class="review-grand"><span>Total Invoice Value</span><span id="reviewTotal"></span></div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-outline" style="flex:1" id="reviewCancelBtn">Edit</button>
+      <button class="btn btn-primary" style="flex:1" id="reviewConfirmBtn">Confirm &amp; Continue</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -638,9 +662,9 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
   resetInvoiceForm();
 });
 
-document.getElementById('printInvoiceBtn').addEventListener('click', ()=>{
+function buildInvoiceFromForm(){
   const totals = renderTotals();
-  printInvoice({
+  return {
     invoiceNo: document.getElementById('invoiceNo').value,
     date: document.getElementById('invoiceDate').value,
     buyer: {
@@ -651,23 +675,45 @@ document.getElementById('printInvoiceBtn').addEventListener('click', ()=>{
     },
     items: currentItems.filter(it=>it.desc && it.qty>0),
     totals
-  });
+  };
+}
+
+let pendingInvoice = null;
+let pendingAction = null;
+
+function openReviewModal(action){
+  pendingInvoice = buildInvoiceFromForm();
+  pendingAction = action;
+  const list = document.getElementById('reviewItemList');
+  list.innerHTML = pendingInvoice.items.map(it => {
+    const amt = (it.qty||0)*(it.rate||0);
+    return `<div class="review-row">
+      <div class="review-desc">${esc(it.desc)}${it.code?' <span class="mono" style="color:var(--text-dim); font-weight:400;">('+esc(it.code)+')</span>':''}</div>
+      <div class="review-calc">Qty ${it.qty} &times; <span class="review-rate">₹${fmt(it.rate)}</span>${it.taxIncl?' (tax incl.)':''} = <b>₹${fmt(amt)}</b></div>
+    </div>`;
+  }).join('');
+  document.getElementById('reviewTotal').textContent = '₹' + fmt(pendingInvoice.totals.rounded);
+  document.getElementById('reviewModal').style.display = 'flex';
+}
+
+document.getElementById('reviewCancelBtn').addEventListener('click', ()=>{
+  document.getElementById('reviewModal').style.display = 'none';
+  pendingInvoice = null; pendingAction = null;
+});
+
+document.getElementById('reviewConfirmBtn').addEventListener('click', ()=>{
+  document.getElementById('reviewModal').style.display = 'none';
+  if(pendingAction === 'print') printInvoice(pendingInvoice);
+  if(pendingAction === 'share') shareInvoice(pendingInvoice);
+  pendingInvoice = null; pendingAction = null;
+});
+
+document.getElementById('printInvoiceBtn').addEventListener('click', ()=>{
+  openReviewModal('print');
 });
 
 document.getElementById('shareInvoiceBtn').addEventListener('click', ()=>{
-  const totals = renderTotals();
-  shareInvoice({
-    invoiceNo: document.getElementById('invoiceNo').value,
-    date: document.getElementById('invoiceDate').value,
-    buyer: {
-      name: document.getElementById('buyerName').value,
-      address: document.getElementById('buyerAddress').value,
-      gstin: document.getElementById('buyerGstin').value,
-      stateCode: document.getElementById('buyerState').value
-    },
-    items: currentItems.filter(it=>it.desc && it.qty>0),
-    totals
-  });
+  openReviewModal('share');
 });
 
 function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
