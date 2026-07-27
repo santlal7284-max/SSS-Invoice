@@ -328,6 +328,12 @@ function allParts(){
 let PARTS_CACHE = allParts();
 function refreshParts(){ PARTS_CACHE = allParts(); }
 
+function landingPrice(basic){
+  const gstPct = parseFloat(settings.gstRate)||18;
+  const val = (parseFloat(basic)||0) * (1 + gstPct/100);
+  return (Math.round(val*100)/100).toFixed(2);
+}
+
 function findPart(code){
   if(!code) return null;
   return PARTS_CACHE.find(p => p.code.toLowerCase() === code.toLowerCase()) || null;
@@ -403,7 +409,8 @@ function renderPartList(){
         <span class="lbl">Customer ₹</span>
         <input type="number" step="0.01" class="price-input ${isOv?'overridden':''}" data-code="${esc(p.code)}" data-field="cbasic" value="${p.cbasic}">
         ${(!p.custom && isOv) ? '<button class="revert-btn" data-revert="'+esc(p.code)+'" title="Original rate par wapas jayein">↺</button>' : ''}
-      </div>`;
+      </div>
+      <div class="landing-price-row" style="margin-top:4px; font-size:11px; color:var(--text-dim);">Franchisee (with tax) — <b class="mono" style="color:var(--navy);">₹${landingPrice(p.fbasic)}</b></div>`;
     list.appendChild(div);
   });
   document.getElementById('loadMoreBtn').style.display = filtered.length>show.length ? 'block':'none';
@@ -462,6 +469,7 @@ document.getElementById('addPartBtn').addEventListener('click', ()=>{
 
 /* ===================== Invoice view ===================== */
 let currentItems = []; // {code, desc, hsn, qty, rate, manual}
+let editingInvoiceIndex = null; // index in invoices[] currently being edited, or null for a new invoice
 
 function newItem(){ return {code:'', desc:'', hsn:'', qty:1, rate:0, manual:false, taxIncl:false}; }
 
@@ -621,6 +629,8 @@ document.getElementById('invoiceDiscount').addEventListener('input', renderTotal
 document.getElementById('gstToggle').addEventListener('change', renderTotals);
 
 function resetInvoiceForm(){
+  editingInvoiceIndex = null;
+  document.getElementById('saveInvoiceBtn').textContent = 'Save Invoice';
   document.getElementById('buyerName').value='';
   document.getElementById('buyerAddress').value='';
   document.getElementById('buyerGstin').value='';
@@ -633,6 +643,33 @@ function resetInvoiceForm(){
   renderItems();
 }
 
+function loadInvoiceForEdit(idx){
+  const inv = invoices[idx];
+  if(!inv) return;
+  editingInvoiceIndex = idx;
+  document.getElementById('buyerName').value = inv.buyer.name || '';
+  document.getElementById('buyerAddress').value = inv.buyer.address || '';
+  document.getElementById('buyerGstin').value = inv.buyer.gstin || '';
+  document.getElementById('buyerState').value = inv.buyer.stateCode || '06';
+  document.getElementById('invoiceNo').value = inv.invoiceNo || '';
+  document.getElementById('invoiceDate').value = inv.date || '';
+  document.getElementById('invoiceDiscount').value = (inv.totals && inv.totals.discountPct) ? inv.totals.discountPct : '';
+  document.getElementById('gstToggle').value = (inv.totals && inv.totals.gst && inv.totals.gst.gstOn===false) ? 'without' : 'with';
+  currentItems = (inv.items || []).map(it => ({...it}));
+  if(currentItems.length===0) currentItems = [newItem()];
+  renderItems();
+  document.getElementById('saveInvoiceBtn').textContent = 'Update Invoice';
+  // switch to invoice tab
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  const invTab = document.querySelector('.tab[data-view="invoice"]');
+  if(invTab) invTab.classList.add('active');
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-invoice').classList.add('active');
+  document.getElementById('topEyebrow').textContent = titles.invoice[0];
+  document.getElementById('topTitle').textContent = titles.invoice[1];
+  toast('Editing invoice ' + (inv.invoiceNo || ''));
+}
+
 /* Save invoice */
 document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
   const buyerName = document.getElementById('buyerName').value.trim();
@@ -640,8 +677,9 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
   const validItems = currentItems.filter(it => (it.desc && it.desc.trim()) && (it.qty>0));
   if(validItems.length===0){ alert('Please add at least one item.'); return; }
   const totals = renderTotals();
+  const isEdit = editingInvoiceIndex !== null && invoices[editingInvoiceIndex];
   const inv = {
-    id: Date.now(),
+    id: isEdit ? invoices[editingInvoiceIndex].id : Date.now(),
     invoiceNo: document.getElementById('invoiceNo').value,
     date: document.getElementById('invoiceDate').value,
     buyer: {
@@ -652,13 +690,19 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
     },
     items: validItems,
     totals,
-    settingsSnapshot: {...settings}
+    settingsSnapshot: isEdit ? invoices[editingInvoiceIndex].settingsSnapshot : {...settings}
   };
-  invoices.unshift(inv);
-  LS.set('sss_invoices', invoices);
-  settings.nextNum = (parseInt(settings.nextNum)||1) + 1;
-  LS.set('sss_settings', settings);
-  toast('Invoice saved: ' + inv.invoiceNo);
+  if(isEdit){
+    invoices[editingInvoiceIndex] = inv;
+    LS.set('sss_invoices', invoices);
+    toast('Invoice updated: ' + inv.invoiceNo);
+  } else {
+    invoices.unshift(inv);
+    LS.set('sss_invoices', invoices);
+    settings.nextNum = (parseInt(settings.nextNum)||1) + 1;
+    LS.set('sss_settings', settings);
+    toast('Invoice saved: ' + inv.invoiceNo);
+  }
   resetInvoiceForm();
 });
 
@@ -851,6 +895,7 @@ function renderHistory(){
       <div class="sub">${esc(inv.buyer.name)}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
+        <button class="btn btn-outline" data-edit="${idx}">✎ Edit</button>
         <button class="btn btn-outline" data-print="${idx}">⬇ PDF</button>
         <button class="btn btn-outline" data-share="${idx}">📤 Share</button>
         <button class="btn btn-danger" data-del="${idx}">Delete</button>
@@ -860,6 +905,8 @@ function renderHistory(){
 }
 
 document.getElementById('historyList').addEventListener('click', (e)=>{
+  const eb = e.target.closest('[data-edit]');
+  if(eb){ loadInvoiceForEdit(+eb.dataset.edit); return; }
   const pb = e.target.closest('[data-print]');
   if(pb){ printInvoice(invoices[+pb.dataset.print]); return; }
   const sb = e.target.closest('[data-share]');
