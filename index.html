@@ -117,7 +117,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 .paper .num{text-align:right;}
 .paper .totalrow td{font-weight:700;}
 .paper{position:relative; overflow:hidden;}
-.paper-watermark{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-28deg); font-size:64px; font-weight:800; color:rgba(18,37,63,0.055); letter-spacing:6px; white-space:nowrap; z-index:0; pointer-events:none; font-family:'Barlow Condensed',sans-serif; text-transform:uppercase;}
+.paper-watermark{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-28deg); font-size:70px; font-weight:800; color:rgba(200,134,42,0.16); letter-spacing:6px; white-space:nowrap; z-index:0; pointer-events:none; font-family:'Barlow Condensed',sans-serif; text-transform:uppercase;}
 .paper-content{position:relative; z-index:1;}
 
 .toast{position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 18px; border-radius:30px; font-size:13.5px; font-weight:600; z-index:60; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
@@ -140,6 +140,12 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 .review-calc{font-size:13px; color:var(--text-dim); margin-top:3px;}
 .review-rate{background:#FFF3D6; color:var(--amber-dark); font-weight:700; padding:1px 6px; border-radius:5px;}
 .review-grand{display:flex; justify-content:space-between; font-size:17px; font-weight:700; color:var(--navy); border-top:2px solid var(--navy); margin-top:10px; padding-top:10px;}
+
+/* PDF in-app preview */
+.pdfview-overlay{display:none; position:fixed; inset:0; background:#fff; z-index:90; flex-direction:column;}
+.pdfview-header{display:flex; align-items:center; justify-content:space-between; background:var(--navy); color:#fff; padding:12px 14px; font-weight:700; font-size:15px;}
+.pdfview-header button{padding:7px 14px; font-size:13px;}
+.pdfview-frame{flex:1; width:100%; border:none;}
 </style>
 </head>
 <body>
@@ -281,6 +287,14 @@ input,select,textarea{font-family:inherit; font-size:15px;}
       <button class="btn btn-primary" style="flex:1" id="reviewConfirmBtn">Confirm &amp; Continue</button>
     </div>
   </div>
+</div>
+
+<div class="pdfview-overlay" id="pdfViewModal">
+  <div class="pdfview-header">
+    <span id="pdfViewTitle">Invoice</span>
+    <button class="btn btn-outline" id="pdfViewCloseBtn">Close</button>
+  </div>
+  <iframe id="pdfViewFrame" class="pdfview-frame"></iframe>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -749,7 +763,7 @@ function invoiceHtml(inv){
     <div style="text-align:center; font-weight:700; font-size:16px;">${esc(settings.companyName)}</div>
     <div style="text-align:center; font-size:11px;">${esc(settings.address)}</div>
     <div style="text-align:center; font-size:11px;">Contact: ${esc(settings.contact)} &nbsp; Email: ${esc(settings.email)}</div>
-    <div style="text-align:center; font-size:11.5px; font-weight:700; color:#C8862A; margin-top:3px; letter-spacing:0.03em;">INALSA Authorised Service Provider</div>
+    <div style="text-align:center; font-size:11.5px; font-weight:700; color:#C8862A; margin-top:3px; letter-spacing:0.03em;">INALSA/VENUS Authorised Service Center</div>
     <div style="display:flex; justify-content:space-between; font-size:11.5px; margin-top:6px; border-top:1px solid #999; padding-top:6px;">
       <span><b>GSTIN:</b> ${esc(settings.gstin)} &nbsp; <b>State Code:</b> ${esc(settings.stateCode)}</span>
       <span><b>PAN:</b> ${esc(settings.pan)}</span>
@@ -801,7 +815,7 @@ function buildInvoicePdf(inv){
   }
   holder.innerHTML = html;
   return html2canvas(holder, { scale: 2, backgroundColor: '#ffffff' }).then((canvas) => {
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = 210, pageHeight = 297;
@@ -810,12 +824,12 @@ function buildInvoicePdf(inv){
     const imgHeightMM = (canvas.height * usableWidth) / canvas.width;
     let heightLeft = imgHeightMM;
     let position = margin;
-    pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeightMM);
+    pdf.addImage(imgData, 'PNG', margin, position, usableWidth, imgHeightMM);
     heightLeft -= (pageHeight - margin * 2);
     while(heightLeft > 0){
       position = heightLeft - imgHeightMM + margin;
       pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeightMM);
+      pdf.addImage(imgData, 'PNG', margin, position, usableWidth, imgHeightMM);
       heightLeft -= (pageHeight - margin * 2);
     }
     return pdf;
@@ -830,6 +844,28 @@ function printInvoice(inv){
     alert('There was a problem creating the PDF. Please check your internet connection and try again.');
   });
 }
+
+let currentViewUrl = null;
+
+function viewInvoicePdf(inv){
+  toast('Loading preview…');
+  buildInvoicePdf(inv).then((pdf) => {
+    const blob = pdf.output('blob');
+    if(currentViewUrl){ URL.revokeObjectURL(currentViewUrl); }
+    currentViewUrl = URL.createObjectURL(blob);
+    document.getElementById('pdfViewFrame').src = currentViewUrl;
+    document.getElementById('pdfViewTitle').textContent = 'Invoice ' + (inv.invoiceNo || '');
+    document.getElementById('pdfViewModal').style.display = 'flex';
+  }).catch(() => {
+    alert('There was a problem loading the preview. Please check your internet connection and try again.');
+  });
+}
+
+document.getElementById('pdfViewCloseBtn').addEventListener('click', ()=>{
+  document.getElementById('pdfViewModal').style.display = 'none';
+  document.getElementById('pdfViewFrame').src = 'about:blank';
+  if(currentViewUrl){ URL.revokeObjectURL(currentViewUrl); currentViewUrl = null; }
+});
 
 function shareInvoice(inv){
   toast('Preparing PDF…');
@@ -868,6 +904,7 @@ function renderHistory(){
       <div class="sub">${esc(inv.buyer.name)}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
+        <button class="btn btn-outline" data-view="${idx}">👁 View</button>
         <button class="btn btn-outline" data-edit="${idx}">✏️ Edit</button>
         <button class="btn btn-outline" data-print="${idx}">⬇ PDF</button>
         <button class="btn btn-outline" data-share="${idx}">📤 Share</button>
@@ -878,6 +915,8 @@ function renderHistory(){
 }
 
 document.getElementById('historyList').addEventListener('click', (e)=>{
+  const vb = e.target.closest('[data-view]');
+  if(vb){ viewInvoicePdf(invoices[+vb.dataset.view]); return; }
   const eb = e.target.closest('[data-edit]');
   if(eb){ loadInvoiceForEdit(+eb.dataset.edit); return; }
   const pb = e.target.closest('[data-print]');
