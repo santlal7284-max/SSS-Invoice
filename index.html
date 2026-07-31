@@ -145,7 +145,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 .pdfview-overlay{display:none; position:fixed; inset:0; background:#fff; z-index:90; flex-direction:column;}
 .pdfview-header{display:flex; align-items:center; justify-content:space-between; background:var(--navy); color:#fff; padding:12px 14px; font-weight:700; font-size:15px;}
 .pdfview-header button{padding:7px 14px; font-size:13px;}
-.pdfview-frame{flex:1; width:100%; border:none;}
+.pdfview-frame{flex:1; width:100%; overflow-y:auto; background:var(--bg); padding:14px;}
 </style>
 </head>
 <body>
@@ -294,7 +294,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
     <span id="pdfViewTitle">Invoice</span>
     <button class="btn btn-outline" id="pdfViewCloseBtn">Close</button>
   </div>
-  <iframe id="pdfViewFrame" class="pdfview-frame"></iframe>
+  <div id="pdfViewFrame" class="pdfview-frame"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -845,26 +845,15 @@ function printInvoice(inv){
   });
 }
 
-let currentViewUrl = null;
-
 function viewInvoicePdf(inv){
-  toast('Loading preview…');
-  buildInvoicePdf(inv).then((pdf) => {
-    const blob = pdf.output('blob');
-    if(currentViewUrl){ URL.revokeObjectURL(currentViewUrl); }
-    currentViewUrl = URL.createObjectURL(blob);
-    document.getElementById('pdfViewFrame').src = currentViewUrl;
-    document.getElementById('pdfViewTitle').textContent = 'Invoice ' + (inv.invoiceNo || '');
-    document.getElementById('pdfViewModal').style.display = 'flex';
-  }).catch(() => {
-    alert('There was a problem loading the preview. Please check your internet connection and try again.');
-  });
+  document.getElementById('pdfViewFrame').innerHTML = invoiceHtml(inv);
+  document.getElementById('pdfViewTitle').textContent = 'Invoice ' + (inv.invoiceNo || '');
+  document.getElementById('pdfViewModal').style.display = 'flex';
 }
 
 document.getElementById('pdfViewCloseBtn').addEventListener('click', ()=>{
   document.getElementById('pdfViewModal').style.display = 'none';
-  document.getElementById('pdfViewFrame').src = 'about:blank';
-  if(currentViewUrl){ URL.revokeObjectURL(currentViewUrl); currentViewUrl = null; }
+  document.getElementById('pdfViewFrame').innerHTML = '';
 });
 
 function shareInvoice(inv){
