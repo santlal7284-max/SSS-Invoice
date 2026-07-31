@@ -116,6 +116,9 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 .paper th{background:var(--navy-pale);}
 .paper .num{text-align:right;}
 .paper .totalrow td{font-weight:700;}
+.paper{position:relative; overflow:hidden;}
+.paper-watermark{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-28deg); font-size:64px; font-weight:800; color:rgba(18,37,63,0.055); letter-spacing:6px; white-space:nowrap; z-index:0; pointer-events:none; font-family:'Barlow Condensed',sans-serif; text-transform:uppercase;}
+.paper-content{position:relative; z-index:1;}
 
 .toast{position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 18px; border-radius:30px; font-size:13.5px; font-weight:600; z-index:60; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
@@ -328,12 +331,6 @@ function allParts(){
 let PARTS_CACHE = allParts();
 function refreshParts(){ PARTS_CACHE = allParts(); }
 
-function landingPrice(basic){
-  const gstPct = parseFloat(settings.gstRate)||18;
-  const val = (parseFloat(basic)||0) * (1 + gstPct/100);
-  return (Math.round(val*100)/100).toFixed(2);
-}
-
 function findPart(code){
   if(!code) return null;
   return PARTS_CACHE.find(p => p.code.toLowerCase() === code.toLowerCase()) || null;
@@ -409,8 +406,7 @@ function renderPartList(){
         <span class="lbl">Customer ₹</span>
         <input type="number" step="0.01" class="price-input ${isOv?'overridden':''}" data-code="${esc(p.code)}" data-field="cbasic" value="${p.cbasic}">
         ${(!p.custom && isOv) ? '<button class="revert-btn" data-revert="'+esc(p.code)+'" title="Original rate par wapas jayein">↺</button>' : ''}
-      </div>
-      <div class="landing-price-row" style="margin-top:4px; font-size:11px; color:var(--text-dim);">Franchisee (with tax) — <b class="mono" style="color:var(--navy);">₹${landingPrice(p.fbasic)}</b></div>`;
+      </div>`;
     list.appendChild(div);
   });
   document.getElementById('loadMoreBtn').style.display = filtered.length>show.length ? 'block':'none';
@@ -469,7 +465,7 @@ document.getElementById('addPartBtn').addEventListener('click', ()=>{
 
 /* ===================== Invoice view ===================== */
 let currentItems = []; // {code, desc, hsn, qty, rate, manual}
-let editingInvoiceIndex = null; // index in invoices[] currently being edited, or null for a new invoice
+let editingIndex = null;
 
 function newItem(){ return {code:'', desc:'', hsn:'', qty:1, rate:0, manual:false, taxIncl:false}; }
 
@@ -629,8 +625,6 @@ document.getElementById('invoiceDiscount').addEventListener('input', renderTotal
 document.getElementById('gstToggle').addEventListener('change', renderTotals);
 
 function resetInvoiceForm(){
-  editingInvoiceIndex = null;
-  document.getElementById('saveInvoiceBtn').textContent = 'Save Invoice';
   document.getElementById('buyerName').value='';
   document.getElementById('buyerAddress').value='';
   document.getElementById('buyerGstin').value='';
@@ -640,34 +634,9 @@ function resetInvoiceForm(){
   document.getElementById('invoiceDiscount').value = '';
   document.getElementById('gstToggle').value = 'with';
   currentItems = [newItem()];
+  editingIndex = null;
+  document.getElementById('saveInvoiceBtn').textContent = 'Save Invoice';
   renderItems();
-}
-
-function loadInvoiceForEdit(idx){
-  const inv = invoices[idx];
-  if(!inv) return;
-  editingInvoiceIndex = idx;
-  document.getElementById('buyerName').value = inv.buyer.name || '';
-  document.getElementById('buyerAddress').value = inv.buyer.address || '';
-  document.getElementById('buyerGstin').value = inv.buyer.gstin || '';
-  document.getElementById('buyerState').value = inv.buyer.stateCode || '06';
-  document.getElementById('invoiceNo').value = inv.invoiceNo || '';
-  document.getElementById('invoiceDate').value = inv.date || '';
-  document.getElementById('invoiceDiscount').value = (inv.totals && inv.totals.discountPct) ? inv.totals.discountPct : '';
-  document.getElementById('gstToggle').value = (inv.totals && inv.totals.gst && inv.totals.gst.gstOn===false) ? 'without' : 'with';
-  currentItems = (inv.items || []).map(it => ({...it}));
-  if(currentItems.length===0) currentItems = [newItem()];
-  renderItems();
-  document.getElementById('saveInvoiceBtn').textContent = 'Update Invoice';
-  // switch to invoice tab
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  const invTab = document.querySelector('.tab[data-view="invoice"]');
-  if(invTab) invTab.classList.add('active');
-  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
-  document.getElementById('view-invoice').classList.add('active');
-  document.getElementById('topEyebrow').textContent = titles.invoice[0];
-  document.getElementById('topTitle').textContent = titles.invoice[1];
-  toast('Editing invoice ' + (inv.invoiceNo || ''));
 }
 
 /* Save invoice */
@@ -677,9 +646,8 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
   const validItems = currentItems.filter(it => (it.desc && it.desc.trim()) && (it.qty>0));
   if(validItems.length===0){ alert('Please add at least one item.'); return; }
   const totals = renderTotals();
-  const isEdit = editingInvoiceIndex !== null && invoices[editingInvoiceIndex];
   const inv = {
-    id: isEdit ? invoices[editingInvoiceIndex].id : Date.now(),
+    id: Date.now(),
     invoiceNo: document.getElementById('invoiceNo').value,
     date: document.getElementById('invoiceDate').value,
     buyer: {
@@ -690,10 +658,11 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
     },
     items: validItems,
     totals,
-    settingsSnapshot: isEdit ? invoices[editingInvoiceIndex].settingsSnapshot : {...settings}
+    settingsSnapshot: {...settings}
   };
-  if(isEdit){
-    invoices[editingInvoiceIndex] = inv;
+  if(editingIndex !== null){
+    inv.id = invoices[editingIndex].id;
+    invoices[editingIndex] = inv;
     LS.set('sss_invoices', invoices);
     toast('Invoice updated: ' + inv.invoiceNo);
   } else {
@@ -774,10 +743,13 @@ function invoiceHtml(inv){
   });
   return `
   <div class="paper">
+    <div class="paper-watermark">INALSA</div>
+    <div class="paper-content">
     <div class="ph">${gstOn ? 'TAX INVOICE' : 'INVOICE'}</div>
     <div style="text-align:center; font-weight:700; font-size:16px;">${esc(settings.companyName)}</div>
     <div style="text-align:center; font-size:11px;">${esc(settings.address)}</div>
     <div style="text-align:center; font-size:11px;">Contact: ${esc(settings.contact)} &nbsp; Email: ${esc(settings.email)}</div>
+    <div style="text-align:center; font-size:11.5px; font-weight:700; color:#C8862A; margin-top:3px; letter-spacing:0.03em;">INALSA Authorised Service Provider</div>
     <div style="display:flex; justify-content:space-between; font-size:11.5px; margin-top:6px; border-top:1px solid #999; padding-top:6px;">
       <span><b>GSTIN:</b> ${esc(settings.gstin)} &nbsp; <b>State Code:</b> ${esc(settings.stateCode)}</span>
       <span><b>PAN:</b> ${esc(settings.pan)}</span>
@@ -809,6 +781,7 @@ function invoiceHtml(inv){
     </table>
     <div style="margin-top:20px; display:flex; justify-content:flex-end;">
       <div style="text-align:center;">For ${esc(settings.companyName)}<br>${getSignature() ? '<img src="'+getSignature()+'" style="max-height:55px; max-width:160px; display:block; margin:4px auto;">' : '<br><br><br>'}Authorised Signatory</div>
+    </div>
     </div>
   </div>`;
 }
@@ -895,7 +868,7 @@ function renderHistory(){
       <div class="sub">${esc(inv.buyer.name)}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
-        <button class="btn btn-outline" data-edit="${idx}">✎ Edit</button>
+        <button class="btn btn-outline" data-edit="${idx}">✏️ Edit</button>
         <button class="btn btn-outline" data-print="${idx}">⬇ PDF</button>
         <button class="btn btn-outline" data-share="${idx}">📤 Share</button>
         <button class="btn btn-danger" data-del="${idx}">Delete</button>
@@ -920,6 +893,25 @@ document.getElementById('historyList').addEventListener('click', (e)=>{
     }
   }
 });
+
+function loadInvoiceForEdit(idx){
+  const inv = invoices[idx];
+  if(!inv) return;
+  editingIndex = idx;
+  document.getElementById('buyerName').value = inv.buyer.name || '';
+  document.getElementById('buyerAddress').value = inv.buyer.address || '';
+  document.getElementById('buyerGstin').value = inv.buyer.gstin || '';
+  document.getElementById('buyerState').value = inv.buyer.stateCode || '06';
+  document.getElementById('invoiceNo').value = inv.invoiceNo || '';
+  document.getElementById('invoiceDate').value = inv.date || '';
+  document.getElementById('invoiceDiscount').value = inv.totals.discountPct || '';
+  document.getElementById('gstToggle').value = (inv.totals.gst && inv.totals.gst.gstOn===false) ? 'without' : 'with';
+  currentItems = inv.items.map(it => ({...it}));
+  renderItems();
+  document.getElementById('saveInvoiceBtn').textContent = 'Update Invoice';
+  document.querySelector('.tab[data-view="invoice"]').click();
+  toast('Editing invoice ' + inv.invoiceNo);
+}
 
 /* ===================== Settings view ===================== */
 function loadSettingsForm(){
