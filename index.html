@@ -144,7 +144,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 /* PDF in-app preview */
 .pdfview-overlay{display:none; position:fixed; inset:0; background:#fff; z-index:90; flex-direction:column;}
 .pdfview-header{display:flex; align-items:center; justify-content:space-between; background:var(--navy); color:#fff; padding:12px 14px; font-weight:700; font-size:15px;}
-.pdfview-header button{padding:7px 14px; font-size:13px;}
+.btn-pdfview{background:var(--amber); color:#2B1B00; border:none; padding:8px 14px; font-size:13px; font-weight:700; border-radius:7px;}
 .pdfview-frame{flex:1; width:100%; overflow-y:auto; background:var(--bg); padding:14px;}
 </style>
 </head>
@@ -292,7 +292,10 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 <div class="pdfview-overlay" id="pdfViewModal">
   <div class="pdfview-header">
     <span id="pdfViewTitle">Invoice</span>
-    <button class="btn btn-outline" id="pdfViewCloseBtn">Close</button>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-pdfview" id="pdfViewShareBtn">📤 Share</button>
+      <button class="btn-pdfview" id="pdfViewCloseBtn">✕ Close</button>
+    </div>
   </div>
   <div id="pdfViewFrame" class="pdfview-frame"></div>
 </div>
@@ -845,7 +848,10 @@ function printInvoice(inv){
   });
 }
 
+let currentlyViewedInvoice = null;
+
 function viewInvoicePdf(inv){
+  currentlyViewedInvoice = inv;
   document.getElementById('pdfViewFrame').innerHTML = invoiceHtml(inv);
   document.getElementById('pdfViewTitle').textContent = 'Invoice ' + (inv.invoiceNo || '');
   document.getElementById('pdfViewModal').style.display = 'flex';
@@ -854,6 +860,11 @@ function viewInvoicePdf(inv){
 document.getElementById('pdfViewCloseBtn').addEventListener('click', ()=>{
   document.getElementById('pdfViewModal').style.display = 'none';
   document.getElementById('pdfViewFrame').innerHTML = '';
+  currentlyViewedInvoice = null;
+});
+
+document.getElementById('pdfViewShareBtn').addEventListener('click', ()=>{
+  if(currentlyViewedInvoice) shareInvoice(currentlyViewedInvoice);
 });
 
 function shareInvoice(inv){
@@ -895,8 +906,6 @@ function renderHistory(){
       <div class="hist-actions">
         <button class="btn btn-outline" data-view="${idx}">👁 View</button>
         <button class="btn btn-outline" data-edit="${idx}">✏️ Edit</button>
-        <button class="btn btn-outline" data-print="${idx}">⬇ PDF</button>
-        <button class="btn btn-outline" data-share="${idx}">📤 Share</button>
         <button class="btn btn-danger" data-del="${idx}">Delete</button>
       </div>`;
     box.appendChild(div);
