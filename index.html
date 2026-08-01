@@ -822,8 +822,8 @@ function buildInvoicePdf(inv){
     document.body.appendChild(holder);
   }
   holder.innerHTML = html;
-  return html2canvas(holder, { scale: 1.5, backgroundColor: '#ffffff' }).then((canvas) => {
-    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+  return html2canvas(holder, { scale: 2, backgroundColor: '#ffffff' }).then((canvas) => {
+    const imgData = canvas.toDataURL('image/jpeg', 0.80);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4', true);
     const pageWidth = 210, pageHeight = 297;
