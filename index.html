@@ -176,6 +176,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
     <div class="card">
       <h3>Billing To</h3>
       <div class="field"><label>Customer / Company Name</label><input id="buyerName" placeholder="e.g. Venus Home Appliances Pvt. Ltd."></div>
+      <div class="field"><label>Mobile Number</label><input id="buyerMobile" type="tel" placeholder="e.g. 9876543210" maxlength="15"></div>
       <div class="field"><label>Address</label><input id="buyerAddress" placeholder="Address"></div>
       <div class="row2">
         <div class="field"><label>GSTIN</label><input id="buyerGstin" placeholder="07AABCXXXXXP1ZD"></div>
@@ -645,6 +646,7 @@ document.getElementById('gstToggle').addEventListener('change', renderTotals);
 
 function resetInvoiceForm(){
   document.getElementById('buyerName').value='';
+  document.getElementById('buyerMobile').value='';
   document.getElementById('buyerAddress').value='';
   document.getElementById('buyerGstin').value='';
   document.getElementById('buyerState').value='06';
@@ -671,6 +673,7 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
     date: document.getElementById('invoiceDate').value,
     buyer: {
       name: buyerName,
+      mobile: document.getElementById('buyerMobile').value,
       address: document.getElementById('buyerAddress').value,
       gstin: document.getElementById('buyerGstin').value,
       stateCode: document.getElementById('buyerState').value
@@ -701,6 +704,7 @@ function buildInvoiceFromForm(){
     date: document.getElementById('invoiceDate').value,
     buyer: {
       name: document.getElementById('buyerName').value,
+      mobile: document.getElementById('buyerMobile').value,
       address: document.getElementById('buyerAddress').value,
       gstin: document.getElementById('buyerGstin').value,
       stateCode: document.getElementById('buyerState').value
@@ -781,6 +785,7 @@ function invoiceHtml(inv){
         <b>Billing To:</b><br>
         ${esc(inv.buyer.name)}<br>
         ${esc(inv.buyer.address)}<br>
+        ${inv.buyer.mobile ? 'Mobile: '+esc(inv.buyer.mobile)+'<br>' : ''}
         GSTIN: ${esc(inv.buyer.gstin)} &nbsp; State Code: ${esc(inv.buyer.stateCode)}
       </div>
       <div style="text-align:right;">
@@ -801,7 +806,16 @@ function invoiceHtml(inv){
         <tr class="totalrow"><td colspan="5" class="num">TOTAL INVOICE VALUE</td><td class="num">₹${fmt(inv.totals.rounded)}</td></tr>
       </tfoot>
     </table>
-    <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+    <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:flex-end; gap:12px;">
+      <div style="font-size:10.5px; border:1px solid #999; border-radius:4px; padding:8px 10px; line-height:1.55;">
+        <div style="font-weight:700; font-size:11.5px; margin-bottom:3px; letter-spacing:0.03em;">BANK DETAILS</div>
+        <div><b>Bank Name:</b> Indian Overseas Bank</div>
+        <div><b>Branch:</b> Sector 28 Faridabad</div>
+        <div><b>Account Number:</b> 183402000001164</div>
+        <div><b>Account Name:</b> M/S SANT SALES & SERVICE</div>
+        <div><b>Account Type:</b> CAA - GOLD</div>
+        <div><b>IFSC Code:</b> IOBA0001834</div>
+      </div>
       <div style="text-align:center;">For ${esc(settings.companyName)}<br>${getSignature() ? '<img src="'+getSignature()+'" style="max-height:55px; max-width:160px; display:block; margin:4px auto;">' : '<br><br><br>'}Authorised Signatory</div>
     </div>
     </div>
@@ -823,7 +837,7 @@ function buildInvoicePdf(inv){
   }
   holder.innerHTML = html;
   return html2canvas(holder, { scale: 2, backgroundColor: '#ffffff' }).then((canvas) => {
-    const imgData = canvas.toDataURL('image/jpeg', 0.80);
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4', true);
     const pageWidth = 210, pageHeight = 297;
@@ -941,6 +955,7 @@ function loadInvoiceForEdit(idx){
   if(!inv) return;
   editingIndex = idx;
   document.getElementById('buyerName').value = inv.buyer.name || '';
+  document.getElementById('buyerMobile').value = inv.buyer.mobile || '';
   document.getElementById('buyerAddress').value = inv.buyer.address || '';
   document.getElementById('buyerGstin').value = inv.buyer.gstin || '';
   document.getElementById('buyerState').value = inv.buyer.stateCode || '06';
