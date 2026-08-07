@@ -275,7 +275,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 
   <div class="tabbar">
     <button class="tab active" data-view="master"><span class="ic">🔧</span>Price Master</button>
-    <button class="tab" id="newInvoiceBtn" data-view="invoice"><span class="ic">🧾</span>New Invoice</button>
+    <button class="tab" id="newInvoiceBtn" data-view="invoice"><span class="ic">🧾</span>Invoice</button>
     <button class="tab" id="venusBillBtn" data-view="invoice"><span class="ic">📑</span>GST Invoice</button>
     <button class="tab" data-view="history"><span class="ic">📋</span>History</button>
     <button class="tab" data-view="settings"><span class="ic">⚙️</span>Settings</button>
@@ -376,7 +376,7 @@ function toast(msg){
 }
 
 /* ===================== Tab navigation ===================== */
-const titles = { master:['SPARE PARTS & BILLING','Price Master'], invoice:['SPARE PARTS & BILLING','New Invoice'], history:['SPARE PARTS & BILLING','Invoice History'], settings:['SPARE PARTS & BILLING','Settings'] };
+const titles = { master:['SPARE PARTS & BILLING','Price Master'], invoice:['SPARE PARTS & BILLING','Invoice'], history:['SPARE PARTS & BILLING','Invoice History'], settings:['SPARE PARTS & BILLING','Settings'] };
 function switchToView(v, activeBtn){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   if(activeBtn) activeBtn.classList.add('active');
@@ -402,11 +402,19 @@ let visibleCount = 40;
 function norm(str){
   return String(str||'').toLowerCase().replace(/[\s\-_.\/,()]+/g,'');
 }
+function normWords(str){
+  return String(str||'').toLowerCase().replace(/[\-_.\/,()]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function matchesQuery(text, query){
+  const hay = normWords(text);
+  const tokens = normWords(query).split(' ').filter(Boolean);
+  if(tokens.length===0) return true;
+  return tokens.every(tok => hay.includes(tok));
+}
 function matchesSearch(p, q, cat){
   if(cat && p.cat !== cat) return false;
   if(!q) return true;
-  const nq = norm(q);
-  return norm(p.code).includes(nq) || norm(p.desc).includes(nq);
+  return matchesQuery(p.code + ' ' + p.desc, q);
 }
 
 function renderPartList(){
@@ -580,8 +588,7 @@ document.getElementById('itemsContainer').addEventListener('input', (e)=>{
     const q = t.value.trim();
     const resBox = document.querySelector(`.ac-results[data-idx="${i}"]`);
     if(q.length < 2){ resBox.innerHTML=''; return; }
-    const nq = norm(q);
-    const matches = PARTS_CACHE.filter(p=>norm(p.code).includes(nq) || norm(p.desc).includes(nq)).slice(0,15);
+    const matches = PARTS_CACHE.filter(p=>matchesQuery(p.code + ' ' + p.desc, q)).slice(0,15);
     if(matches.length===0){ resBox.innerHTML=''; return; }
     resBox.innerHTML = '<div class="ac-list">' + matches.map(m=>
       `<div class="ac-item" data-idx="${i}" data-code="${esc(m.code)}"><span class="c mono">${esc(m.code)}</span> — ${esc(m.desc)} <span style="color:var(--text-dim)">(₹${m.cbasic})</span></div>`
