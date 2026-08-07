@@ -81,7 +81,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 /* invoice items */
 .item-card{border:1px solid var(--border); border-radius:9px; padding:10px; margin-bottom:8px; position:relative; background:#FBFCFD;}
 .item-card .idx{position:absolute; top:-9px; left:10px; background:var(--navy); color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;}
-.item-card .remove{position:absolute; top:6px; right:8px; background:none; border:none; color:var(--red); font-size:18px; line-height:1;}
+.item-card .remove{position:absolute; top:2px; right:2px; background:none; border:none; color:var(--red); font-size:20px; line-height:1; width:38px; height:38px; display:flex; align-items:center; justify-content:center; z-index:5; cursor:pointer; touch-action:manipulation;}
 .autocomplete{position:relative;}
 .ac-list{position:absolute; z-index:30; left:0; right:0; top:100%; background:#fff; border:1.5px solid var(--border); border-radius:8px; max-height:220px; overflow-y:auto; box-shadow:0 8px 24px rgba(18,37,63,0.18); margin-top:3px;}
 .ac-item{padding:9px 10px; border-bottom:1px solid var(--border); font-size:13.5px;}
@@ -194,15 +194,15 @@ input,select,textarea{font-family:inherit; font-size:15px;}
       <button class="btn btn-outline btn-block" id="addItemBtn">+ Add Item</button>
     </div>
 
-    <div class="card">
-      <div class="field">
+    <div class="card" id="billOptionsCard">
+      <div class="field" id="gstToggleField">
         <label>Bill Type</label>
         <select id="gstToggle">
           <option value="with">With GST</option>
           <option value="without">Without GST</option>
         </select>
       </div>
-      <div class="field"><label>Discount %</label><input id="invoiceDiscount" type="number" step="0.01" min="0" max="100" placeholder="0"></div>
+      <div class="field" id="discountField"><label>Discount %</label><input id="invoiceDiscount" type="number" step="0.01" min="0" max="100" placeholder="0"></div>
       <div class="totals" id="invoiceTotals"></div>
     </div>
 
@@ -242,6 +242,10 @@ input,select,textarea{font-family:inherit; font-size:15px;}
         <div class="field"><label>Invoice Prefix</label><input id="setPrefix" placeholder="SSS/07/TM/"></div>
         <div class="field"><label>Next Invoice No.</label><input id="setNextNum" type="number"></div>
       </div>
+      <div class="row2">
+        <div class="field"><label>GST Invoice Prefix</label><input id="setGstPrefix" placeholder="VNS/07/26-27/"></div>
+        <div class="field"><label>GST Invoice Next No.</label><input id="setGstNextNum" type="number"></div>
+      </div>
       <button class="btn btn-primary btn-block" id="saveSettingsBtn">Save Settings</button>
     </div>
 
@@ -271,8 +275,8 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 
   <div class="tabbar">
     <button class="tab active" data-view="master"><span class="ic">🔧</span>Price Master</button>
-    <button class="tab" data-view="invoice"><span class="ic">🧾</span>New Invoice</button>
-    <button class="tab" id="venusBillBtn" data-view="invoice"><span class="ic">💧</span>Venus Bill</button>
+    <button class="tab" id="newInvoiceBtn" data-view="invoice"><span class="ic">🧾</span>New Invoice</button>
+    <button class="tab" id="venusBillBtn" data-view="invoice"><span class="ic">💧</span>GST Invoice</button>
     <button class="tab" data-view="history"><span class="ic">📋</span>History</button>
     <button class="tab" data-view="settings"><span class="ic">⚙️</span>Settings</button>
   </div>
@@ -304,8 +308,6 @@ input,select,textarea{font-family:inherit; font-size:15px;}
   <div id="pdfViewFrame" class="pdfview-frame"></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="data.js"></script>
 <script>
 /* ===================== Storage helpers ===================== */
@@ -327,6 +329,8 @@ const DEFAULT_SETTINGS = {
   gstRate: 18,
   prefix: 'SSS/07/TM/',
   nextNum: 31,
+  gstPrefix: 'VNS/07/',
+  gstNextNum: 1,
   signatureImage: DEFAULT_SIGNATURE
 };
 
@@ -373,17 +377,19 @@ function toast(msg){
 
 /* ===================== Tab navigation ===================== */
 const titles = { master:['SPARE PARTS & BILLING','Price Master'], invoice:['SPARE PARTS & BILLING','New Invoice'], history:['SPARE PARTS & BILLING','Invoice History'], settings:['SPARE PARTS & BILLING','Settings'] };
+function switchToView(v, activeBtn){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  if(activeBtn) activeBtn.classList.add('active');
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('topEyebrow').textContent = titles[v][0];
+  document.getElementById('topTitle').textContent = titles[v][1];
+  if(v==='history') renderHistory();
+  if(v==='settings') loadSettingsForm();
+}
 document.querySelectorAll('.tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    const v = btn.dataset.view;
-    document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
-    document.getElementById('view-'+v).classList.add('active');
-    document.getElementById('topEyebrow').textContent = titles[v][0];
-    document.getElementById('topTitle').textContent = titles[v][1];
-    if(v==='history') renderHistory();
-    if(v==='settings') loadSettingsForm();
+    switchToView(btn.dataset.view, btn);
   });
 });
 
@@ -520,7 +526,7 @@ function renderItems(){
     div.className = 'item-card';
     div.innerHTML = `
       <span class="idx">#${idx+1}</span>
-      <button class="remove" data-remove="${idx}" title="Remove">✕</button>
+      <button class="remove" type="button" data-remove="${idx}" title="Remove">✕</button>
       <div class="autocomplete">
         <div class="field" style="margin-bottom:6px;">
           <label>Search Part Code / Description (or leave blank to enter manually)</label>
@@ -645,13 +651,28 @@ document.getElementById('buyerState').addEventListener('input', renderTotals);
 document.getElementById('invoiceDiscount').addEventListener('input', renderTotals);
 document.getElementById('gstToggle').addEventListener('change', renderTotals);
 
+let invoiceMode = 'normal'; // 'normal' | 'gst'
+
+function setInvoiceMode(mode){
+  invoiceMode = mode;
+  const isGst = mode === 'gst';
+  document.getElementById('gstToggleField').style.display = isGst ? 'none' : '';
+  document.getElementById('discountField').style.display = isGst ? 'none' : '';
+  if(isGst){
+    document.getElementById('gstToggle').value = 'with';
+    document.getElementById('invoiceDiscount').value = '';
+  }
+}
+
 function resetInvoiceForm(){
   document.getElementById('buyerName').value='';
   document.getElementById('buyerMobile').value='';
   document.getElementById('buyerAddress').value='';
   document.getElementById('buyerGstin').value='';
   document.getElementById('buyerState').value='06';
-  document.getElementById('invoiceNo').value = (settings.prefix||'') + settings.nextNum;
+  document.getElementById('invoiceNo').value = invoiceMode==='gst'
+    ? (settings.gstPrefix||'') + settings.gstNextNum
+    : (settings.prefix||'') + settings.nextNum;
   document.getElementById('invoiceDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('invoiceDiscount').value = '';
   document.getElementById('gstToggle').value = 'with';
@@ -661,10 +682,15 @@ function resetInvoiceForm(){
   renderItems();
 }
 
+document.getElementById('newInvoiceBtn').addEventListener('click', ()=>{
+  setInvoiceMode('normal');
+});
+
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 document.getElementById('venusBillBtn').addEventListener('click', ()=>{
+  setInvoiceMode('gst');
   resetInvoiceForm();
-  document.getElementById('topTitle').textContent = 'Venus Bill';
+  document.getElementById('topTitle').textContent = 'GST Invoice';
   document.getElementById('buyerName').value = 'Venus Home Appliances Pvt. Ltd.';
   document.getElementById('buyerAddress').value = '1st Floor AB-8, Community Center, New Delhi-110029';
   document.getElementById('buyerGstin').value = '07AABCV6878P1ZD';
@@ -710,7 +736,11 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
   } else {
     invoices.unshift(inv);
     LS.set('sss_invoices', invoices);
-    settings.nextNum = (parseInt(settings.nextNum)||1) + 1;
+    if(invoiceMode === 'gst'){
+      settings.gstNextNum = (parseInt(settings.gstNextNum)||1) + 1;
+    } else {
+      settings.nextNum = (parseInt(settings.nextNum)||1) + 1;
+    }
     LS.set('sss_settings', settings);
     toast('Invoice saved: ' + inv.invoiceNo);
   }
@@ -842,6 +872,26 @@ function invoiceHtml(inv){
   </div>`;
 }
 
+let _libsPromise = null;
+function ensurePdfLibs(){
+  if(window.html2canvas && window.jspdf) return Promise.resolve();
+  if(_libsPromise) return _libsPromise;
+  function loadScript(src){
+    return new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = ()=>reject(new Error('Failed to load '+src));
+      document.head.appendChild(s);
+    });
+  }
+  _libsPromise = Promise.all([
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+  ]).catch((err)=>{ _libsPromise = null; throw err; });
+  return _libsPromise;
+}
+
 function buildInvoicePdf(inv){
   const html = invoiceHtml(inv);
   let holder = document.getElementById('pdfRenderHolder');
@@ -856,7 +906,7 @@ function buildInvoicePdf(inv){
     document.body.appendChild(holder);
   }
   holder.innerHTML = html;
-  return html2canvas(holder, { scale: 2, backgroundColor: '#ffffff' }).then((canvas) => {
+  return ensurePdfLibs().then(() => html2canvas(holder, { scale: 2, backgroundColor: '#ffffff' })).then((canvas) => {
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4', true);
@@ -974,6 +1024,8 @@ function loadInvoiceForEdit(idx){
   const inv = invoices[idx];
   if(!inv) return;
   editingIndex = idx;
+  const looksLikeGst = settings.gstPrefix && (inv.invoiceNo||'').indexOf(settings.gstPrefix) === 0;
+  setInvoiceMode(looksLikeGst ? 'gst' : 'normal');
   document.getElementById('buyerName').value = inv.buyer.name || '';
   document.getElementById('buyerMobile').value = inv.buyer.mobile || '';
   document.getElementById('buyerAddress').value = inv.buyer.address || '';
@@ -986,7 +1038,7 @@ function loadInvoiceForEdit(idx){
   currentItems = inv.items.map(it => ({...it}));
   renderItems();
   document.getElementById('saveInvoiceBtn').textContent = 'Update Invoice';
-  document.querySelector('.tab[data-view="invoice"]').click();
+  switchToView('invoice', document.getElementById('newInvoiceBtn'));
   toast('Editing invoice ' + inv.invoiceNo);
 }
 
@@ -1002,6 +1054,8 @@ function loadSettingsForm(){
   document.getElementById('setGstRate').value = settings.gstRate;
   document.getElementById('setPrefix').value = settings.prefix;
   document.getElementById('setNextNum').value = settings.nextNum;
+  document.getElementById('setGstPrefix').value = settings.gstPrefix;
+  document.getElementById('setGstNextNum').value = settings.gstNextNum;
   updateSignaturePreview();
 }
 
@@ -1049,6 +1103,8 @@ document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{
     gstRate: parseFloat(document.getElementById('setGstRate').value)||18,
     prefix: document.getElementById('setPrefix').value,
     nextNum: parseInt(document.getElementById('setNextNum').value)||1,
+    gstPrefix: document.getElementById('setGstPrefix').value,
+    gstNextNum: parseInt(document.getElementById('setGstNextNum').value)||1,
     signatureImage: settings.signatureImage
   };
   LS.set('sss_settings', settings);
