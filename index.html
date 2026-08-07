@@ -175,6 +175,12 @@ input,select,textarea{font-family:inherit; font-size:15px;}
   <div class="view" id="view-invoice">
     <div class="card">
       <h3>Billing To</h3>
+      <div class="field">
+        <label>Saved Customer</label>
+        <select id="customerSelect">
+          <option value="">+ New / Manual Entry</option>
+        </select>
+      </div>
       <div class="field"><label>Customer / Company Name</label><input id="buyerName" placeholder="e.g. Venus Home Appliances Pvt. Ltd."></div>
       <div class="field"><label>Mobile Number</label><input id="buyerMobile" type="tel" placeholder="e.g. 9876543210" maxlength="15"></div>
       <div class="field"><label>Address</label><input id="buyerAddress" placeholder="Address"></div>
@@ -182,6 +188,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
         <div class="field"><label>GSTIN</label><input id="buyerGstin" placeholder="07AABCXXXXXP1ZD"></div>
         <div class="field"><label>State Code</label><input id="buyerState" placeholder="06" maxlength="2"></div>
       </div>
+      <button class="btn btn-outline btn-block" id="saveCustomerBtn" type="button" style="margin-top:6px;">💾 Save as Customer</button>
       <div class="row2">
         <div class="field"><label>Invoice No.</label><input id="invoiceNo"></div>
         <div class="field"><label>Date</label><input id="invoiceDate" type="date"></div>
@@ -337,6 +344,17 @@ let settings = LS.get('sss_settings', DEFAULT_SETTINGS);
 let overrides = LS.get('sss_price_overrides', {});     // {code: {fbasic, cbasic}}
 let customParts = LS.get('sss_custom_parts', []);       // [[code,hsn,cat,desc,fbasic,cbasic], ...]
 let invoices = LS.get('sss_invoices', []);
+let customers = LS.get('sss_customers', []);
+if(!customers.some(c => (c.name||'').trim().toLowerCase() === 'venus home appliances pvt. ltd.')){
+  customers.push({
+    name: 'Venus Home Appliances Pvt. Ltd.',
+    mobile: '',
+    address: '1st Floor AB-8, Community Center, New Delhi-110029',
+    gstin: '07AABCV6878P1ZD',
+    stateCode: '07'
+  });
+  LS.set('sss_customers', customers);
+}
 
 /* ===================== Combined part list ===================== */
 function allParts(){
@@ -645,6 +663,7 @@ document.getElementById('invoiceDiscount').addEventListener('input', renderTotal
 document.getElementById('gstToggle').addEventListener('change', renderTotals);
 
 function resetInvoiceForm(){
+  document.getElementById('customerSelect').value = '';
   document.getElementById('buyerName').value='';
   document.getElementById('buyerMobile').value='';
   document.getElementById('buyerAddress').value='';
@@ -659,6 +678,47 @@ function resetInvoiceForm(){
   document.getElementById('saveInvoiceBtn').textContent = 'Save Invoice';
   renderItems();
 }
+
+function populateCustomerSelect(selectedName){
+  const sel = document.getElementById('customerSelect');
+  sel.innerHTML = '<option value="">+ New / Manual Entry</option>' +
+    customers.map((c,i)=>`<option value="${i}">${esc(c.name)}</option>`).join('');
+  if(selectedName){
+    const idx = customers.findIndex(c => c.name === selectedName);
+    if(idx>=0) sel.value = idx;
+  }
+}
+populateCustomerSelect();
+
+document.getElementById('customerSelect').addEventListener('change', (e)=>{
+  const idx = e.target.value;
+  if(idx===''){ return; }
+  const c = customers[idx];
+  if(!c) return;
+  document.getElementById('buyerName').value = c.name || '';
+  document.getElementById('buyerMobile').value = c.mobile || '';
+  document.getElementById('buyerAddress').value = c.address || '';
+  document.getElementById('buyerGstin').value = c.gstin || '';
+  document.getElementById('buyerState').value = c.stateCode || '06';
+  renderTotals();
+});
+
+document.getElementById('saveCustomerBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('buyerName').value.trim();
+  if(!name){ alert('Please enter the customer name first.'); return; }
+  const data = {
+    name,
+    mobile: document.getElementById('buyerMobile').value,
+    address: document.getElementById('buyerAddress').value,
+    gstin: document.getElementById('buyerGstin').value,
+    stateCode: document.getElementById('buyerState').value
+  };
+  const idx = customers.findIndex(c => c.name.trim().toLowerCase() === name.toLowerCase());
+  if(idx>=0){ customers[idx] = data; } else { customers.push(data); }
+  LS.set('sss_customers', customers);
+  populateCustomerSelect(name);
+  toast('Customer saved: ' + name);
+});
 
 /* Save invoice */
 document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
@@ -954,6 +1014,7 @@ function loadInvoiceForEdit(idx){
   const inv = invoices[idx];
   if(!inv) return;
   editingIndex = idx;
+  populateCustomerSelect(inv.buyer.name || '');
   document.getElementById('buyerName').value = inv.buyer.name || '';
   document.getElementById('buyerMobile').value = inv.buyer.mobile || '';
   document.getElementById('buyerAddress').value = inv.buyer.address || '';
