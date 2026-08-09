@@ -389,6 +389,8 @@ function toast(msg){
 /* ===================== Tab navigation ===================== */
 const titles = { master:['SPARE PARTS & BILLING','Price Master'], invoice:['SPARE PARTS & BILLING','Invoice'], history:['SPARE PARTS & BILLING','Invoice History'], settings:['SPARE PARTS & BILLING','Settings'] };
 let currentViewName = 'master';
+let backPressArmed = false;
+let backPressTimer = null;
 history.replaceState({view:'master', floor:true}, '', location.pathname + location.search);
 history.pushState({view:'master'}, '', location.pathname + location.search);
 
@@ -418,13 +420,15 @@ window.addEventListener('popstate', (e)=>{
     return;
   }
   if(e.state && e.state.floor){
-    const wantExit = confirm('Do you want to exit the app?');
-    if(wantExit){
-      try{ window.close(); }catch(err){}
-    } else {
+    if(!backPressArmed){
+      backPressArmed = true;
+      toast('Press back again to exit');
       history.pushState({view:'master'}, '', location.pathname + location.search);
       switchToView('master', document.querySelector('.tab[data-view="master"]'), false);
+      clearTimeout(backPressTimer);
+      backPressTimer = setTimeout(()=>{ backPressArmed = false; }, 2000);
     }
+    // if backPressArmed is already true, do nothing here -> lets the back navigation exit the app
     return;
   }
   const v = (e.state && e.state.view) || 'master';
