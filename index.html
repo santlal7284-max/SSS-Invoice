@@ -125,6 +125,12 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 .toast{position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 18px; border-radius:30px; font-size:13.5px; font-weight:600; z-index:60; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
 
+.hist-filter{display:flex; gap:6px; margin-bottom:10px;}
+.hist-filter-btn{flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text-dim); padding:8px 4px; font-size:12px; font-weight:600; border-radius:8px;}
+.hist-filter-btn.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+.hist-badge{display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:0.02em; margin-left:6px; vertical-align:middle;}
+.hist-badge.gst{background:rgba(200,134,42,0.15); color:#C8862A;}
+.hist-badge.normal{background:rgba(18,37,63,0.1); color:var(--navy);}
 .hist-row{background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:12px; margin-bottom:8px;}
 .hist-row .top{display:flex; justify-content:space-between; font-weight:700; color:var(--navy);}
 .hist-row .sub{font-size:12px; color:var(--text-dim); margin-top:2px;}
@@ -217,6 +223,11 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 
   <!-- HISTORY -->
   <div class="view" id="view-history">
+    <div class="hist-filter" id="historyFilter">
+      <button class="hist-filter-btn active" data-filter="all">All</button>
+      <button class="hist-filter-btn" data-filter="normal">Invoice</button>
+      <button class="hist-filter-btn" data-filter="gst">GST Invoice</button>
+    </div>
     <div id="historyList"></div>
   </div>
 
@@ -985,18 +996,32 @@ function shareInvoice(inv){
 }
 
 /* ===================== History view ===================== */
+let historyFilter = 'all';
+function invoiceTypeOf(inv){
+  return (settings.gstPrefix && (inv.invoiceNo||'').indexOf(settings.gstPrefix) === 0) ? 'gst' : 'normal';
+}
 function renderHistory(){
   const box = document.getElementById('historyList');
+  const filtered = [];
+  invoices.forEach((inv, idx)=>{
+    if(historyFilter==='all' || invoiceTypeOf(inv)===historyFilter) filtered.push({inv, idx});
+  });
   if(invoices.length===0){
     box.innerHTML = '<div class="empty"><div class="ic">🧾</div>No invoices saved yet.</div>';
     return;
   }
+  if(filtered.length===0){
+    box.innerHTML = '<div class="empty"><div class="ic">🧾</div>No invoices in this category.</div>';
+    return;
+  }
   box.innerHTML = '';
-  invoices.forEach((inv, idx)=>{
+  filtered.forEach(({inv, idx})=>{
+    const type = invoiceTypeOf(inv);
+    const badge = type==='gst' ? '<span class="hist-badge gst">GST Invoice</span>' : '<span class="hist-badge normal">Invoice</span>';
     const div = document.createElement('div');
     div.className = 'hist-row';
     div.innerHTML = `
-      <div class="top"><span>${esc(inv.invoiceNo)}</span><span>${esc(inv.date)}</span></div>
+      <div class="top"><span>${esc(inv.invoiceNo)}${badge}</span><span>${esc(inv.date)}</span></div>
       <div class="sub">${esc(inv.buyer.name)}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
@@ -1007,6 +1032,15 @@ function renderHistory(){
     box.appendChild(div);
   });
 }
+
+document.getElementById('historyFilter').addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-filter]');
+  if(!btn) return;
+  historyFilter = btn.dataset.filter;
+  document.querySelectorAll('.hist-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory();
+});
 
 document.getElementById('historyList').addEventListener('click', (e)=>{
   const vb = e.target.closest('[data-view]');
