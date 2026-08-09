@@ -388,9 +388,18 @@ function toast(msg){
 
 /* ===================== Tab navigation ===================== */
 const titles = { master:['SPARE PARTS & BILLING','Price Master'], invoice:['SPARE PARTS & BILLING','Invoice'], history:['SPARE PARTS & BILLING','Invoice History'], settings:['SPARE PARTS & BILLING','Settings'] };
-function switchToView(v, activeBtn){
+let currentViewName = 'master';
+history.replaceState({view:'master', floor:true}, '', location.pathname + location.search);
+history.pushState({view:'master'}, '', location.pathname + location.search);
+
+function switchToView(v, activeBtn, pushState){
+  if(pushState !== false && v !== currentViewName){
+    history.pushState({view:v}, '', location.pathname + location.search + '#' + v);
+  }
+  currentViewName = v;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  if(activeBtn) activeBtn.classList.add('active');
+  const btn = activeBtn || document.querySelector('.tab[data-view="'+v+'"]');
+  if(btn) btn.classList.add('active');
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.getElementById('topEyebrow').textContent = titles[v][0];
@@ -398,6 +407,31 @@ function switchToView(v, activeBtn){
   if(v==='history') renderHistory();
   if(v==='settings') loadSettingsForm();
 }
+
+window.addEventListener('popstate', (e)=>{
+  const modal = document.getElementById('pdfViewModal');
+  if(modal.style.display === 'flex'){
+    modal.style.display = 'none';
+    document.getElementById('pdfViewFrame').innerHTML = '';
+    currentlyViewedInvoice = null;
+    history.pushState({view: currentViewName}, '', location.pathname + location.search + '#' + currentViewName);
+    return;
+  }
+  if(e.state && e.state.floor){
+    const wantExit = confirm('Do you want to exit the app?');
+    if(wantExit){
+      try{ window.close(); }catch(err){}
+    } else {
+      history.pushState({view:'master'}, '', location.pathname + location.search);
+      switchToView('master', document.querySelector('.tab[data-view="master"]'), false);
+    }
+    return;
+  }
+  const v = (e.state && e.state.view) || 'master';
+  const btn = document.querySelector('.tab[data-view="'+v+'"]');
+  switchToView(v, btn, false);
+});
+
 document.querySelectorAll('.tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     switchToView(btn.dataset.view, btn);
