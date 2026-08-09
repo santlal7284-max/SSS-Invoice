@@ -395,6 +395,8 @@ history.replaceState({view:'master', floor:true}, '', location.pathname + locati
 history.pushState({view:'master'}, '', location.pathname + location.search);
 
 function switchToView(v, activeBtn, pushState){
+  const modal = document.getElementById('pdfViewModal');
+  if(modal.style.display === 'flex'){ closePdfViewModal(); }
   if(pushState !== false && v !== currentViewName){
     history.pushState({view:v}, '', location.pathname + location.search + '#' + v);
   }
@@ -413,10 +415,7 @@ function switchToView(v, activeBtn, pushState){
 window.addEventListener('popstate', (e)=>{
   const modal = document.getElementById('pdfViewModal');
   if(modal.style.display === 'flex'){
-    modal.style.display = 'none';
-    document.getElementById('pdfViewFrame').innerHTML = '';
-    currentlyViewedInvoice = null;
-    history.pushState({view: currentViewName}, '', location.pathname + location.search + '#' + currentViewName);
+    closePdfViewModal();
     return;
   }
   if(e.state && e.state.floor){
@@ -1000,12 +999,17 @@ function viewInvoicePdf(inv){
   document.getElementById('pdfViewFrame').innerHTML = invoiceHtml(inv);
   document.getElementById('pdfViewTitle').textContent = 'Invoice ' + (inv.invoiceNo || '');
   document.getElementById('pdfViewModal').style.display = 'flex';
+  history.pushState({view: currentViewName, modal:true}, '', location.pathname + location.search);
 }
 
-document.getElementById('pdfViewCloseBtn').addEventListener('click', ()=>{
+function closePdfViewModal(){
   document.getElementById('pdfViewModal').style.display = 'none';
   document.getElementById('pdfViewFrame').innerHTML = '';
   currentlyViewedInvoice = null;
+}
+
+document.getElementById('pdfViewCloseBtn').addEventListener('click', ()=>{
+  if(history.state && history.state.modal){ history.back(); } else { closePdfViewModal(); }
 });
 
 document.getElementById('pdfViewShareBtn').addEventListener('click', ()=>{
