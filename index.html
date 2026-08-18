@@ -14,31 +14,42 @@
 :root{
   --navy:#12253F; --navy-light:#1B3355; --navy-pale:#EDF1F6;
   --amber:#F0A93B; --amber-dark:#C8862A;
-  --bg:#EDF1F6; --surface:#FFFFFF; --border:#D7DEE6;
+  --bg:#F3F6FA; --surface:#FFFFFF; --border:#DEE5EC;
   --text:#16233A; --text-dim:#5C6B7A;
   --green:#1E8E5A; --red:#C23B3B;
-  --radius:10px;
+  --radius:14px;
+  --shadow-sm:0 1px 3px rgba(18,37,63,0.06), 0 1px 2px rgba(18,37,63,0.04);
+  --shadow-md:0 6px 18px rgba(18,37,63,0.10);
+  --ease:cubic-bezier(.4,0,.2,1);
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; height:100%;}
 h1,h2,h3,.display{font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:0.01em;}
 .mono{font-family:'JetBrains Mono',monospace;}
 button{font-family:inherit; cursor:pointer;}
-input,select,textarea{font-family:inherit; font-size:15px;}
+input,select,textarea{font-family:inherit; font-size:15px; transition:border-color .18s var(--ease), box-shadow .18s var(--ease);}
+@keyframes fadeSlideIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+@keyframes popIn{from{opacity:0; transform:scale(.96);} to{opacity:1; transform:scale(1);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulseDot{0%,100%{opacity:1;} 50%{opacity:.35;}}
 
 #app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:var(--bg); position:relative;}
 
 /* Top bar */
-.topbar{background:var(--navy); color:#fff; padding:14px 16px 12px; position:sticky; top:0; z-index:20;}
-.topbar .eyebrow{font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--amber); font-weight:600;}
+.topbar{background:linear-gradient(160deg,var(--navy),var(--navy-light)); color:#fff; padding:14px 16px 12px; position:sticky; top:0; z-index:20; box-shadow:var(--shadow-md);}
+.topbar .eyebrow{font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--amber); font-weight:600; display:flex; align-items:center; justify-content:space-between; gap:8px;}
 .topbar h1{margin:2px 0 0; font-size:24px; line-height:1;}
 .topbar .stripe{height:3px; background:linear-gradient(90deg,var(--amber),transparent); margin-top:10px; border-radius:2px;}
+.sync-badge{display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:0.03em; color:#C8DAF0; text-transform:none;}
+.sync-badge .dot{width:7px; height:7px; border-radius:50%; background:#6EE7A8; box-shadow:0 0 0 3px rgba(110,231,168,0.18);}
+.sync-badge.syncing .dot{background:var(--amber); animation:pulseDot 1s infinite;}
+.sync-badge.offline .dot{background:#F26B6B;}
 
 /* Views */
 .view{display:none; flex:1; padding:14px 14px 90px; overflow-y:auto;}
-.view.active{display:block;}
+.view.active{display:block; animation:fadeSlideIn .28s var(--ease);}
 
-.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:12px;}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:12px; box-shadow:var(--shadow-sm); transition:box-shadow .2s var(--ease), transform .2s var(--ease);}
 .card h3{margin:0 0 10px; font-size:19px; color:var(--navy);}
 
 .field{margin-bottom:10px;}
@@ -55,7 +66,8 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 .result-count{font-size:12px; color:var(--text-dim); margin:2px 2px 8px;}
 
 /* price master list */
-.part-row{background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:10px 12px; margin-bottom:8px;}
+.part-row{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:8px; box-shadow:var(--shadow-sm); transition:box-shadow .2s var(--ease), transform .15s var(--ease); animation:fadeSlideIn .25s var(--ease);}
+.part-row:active{transform:scale(0.99);}
 .part-row .top{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
 .part-code{font-size:12px; color:var(--amber-dark); font-weight:700;}
 .part-cat{font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em;}
@@ -70,16 +82,21 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 .loadmore{width:100%; padding:11px; border:1.5px dashed var(--border); background:transparent; border-radius:9px; color:var(--navy); font-weight:600;}
 
 /* buttons */
-.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:11px 16px; border-radius:8px; border:none; font-weight:700; font-size:14.5px;}
-.btn-primary{background:var(--navy); color:#fff;}
-.btn-amber{background:var(--amber); color:#2B1B00;}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:11px 16px; border-radius:9px; border:none; font-weight:700; font-size:14.5px; transition:transform .12s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease), opacity .18s var(--ease);}
+.btn:active{transform:scale(0.96);}
+.btn-primary{background:var(--navy); color:#fff; box-shadow:0 3px 10px rgba(18,37,63,0.25);}
+.btn-primary:hover{background:var(--navy-light);}
+.btn-amber{background:var(--amber); color:#2B1B00; box-shadow:0 3px 10px rgba(240,169,59,0.3);}
 .btn-outline{background:transparent; border:1.5px solid var(--border); color:var(--navy);}
+.btn-outline:hover{border-color:var(--navy); background:var(--navy-pale);}
 .btn-danger{background:transparent; border:1.5px solid var(--red); color:var(--red);}
+.btn-danger:hover{background:rgba(194,59,59,0.08);}
 .btn-block{width:100%;}
 .btn-row{display:flex; gap:8px;}
+.btn[disabled]{opacity:.55; pointer-events:none;}
 
 /* invoice items */
-.item-card{border:1px solid var(--border); border-radius:9px; padding:10px; margin-bottom:8px; position:relative; background:#FBFCFD;}
+.item-card{border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:8px; position:relative; background:#FBFCFD; animation:fadeSlideIn .22s var(--ease); box-shadow:var(--shadow-sm);}
 .item-card .idx{position:absolute; top:-9px; left:10px; background:var(--navy); color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;}
 .item-card .remove{position:absolute; top:2px; right:2px; background:none; border:none; color:var(--red); font-size:20px; line-height:1; width:38px; height:38px; display:flex; align-items:center; justify-content:center; z-index:5; cursor:pointer; touch-action:manipulation;}
 .autocomplete{position:relative;}
@@ -99,9 +116,11 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 
 /* bottom nav */
 .tabbar{position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:520px; background:var(--navy); display:flex; z-index:40; padding:6px 4px calc(6px + env(safe-area-inset-bottom)); box-shadow:0 -4px 16px rgba(0,0,0,0.15);}
-.tab{flex:1; background:none; border:none; color:#9FB1C7; padding:8px 2px 6px; font-size:10px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:3px; border-radius:8px;}
-.tab .ic{font-size:17px;}
+.tab{flex:1; background:none; border:none; color:#9FB1C7; padding:8px 2px 6px; font-size:10px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:3px; border-radius:8px; transition:color .18s var(--ease), transform .12s var(--ease);}
+.tab .ic{font-size:17px; transition:transform .18s var(--ease);}
 .tab.active{color:var(--amber);}
+.tab.active .ic{transform:translateY(-2px) scale(1.08);}
+.tab:active{transform:scale(0.93);}
 
 .empty{text-align:center; padding:40px 20px; color:var(--text-dim);}
 .empty .ic{font-size:38px; margin-bottom:8px;}
@@ -160,7 +179,10 @@ input,select,textarea{font-family:inherit; font-size:15px;}
 <div id="app">
 
   <div class="topbar">
-    <div class="eyebrow" id="topEyebrow">SPARE PARTS &amp; BILLING</div>
+    <div class="eyebrow">
+      <span id="topEyebrow">SPARE PARTS &amp; BILLING</span>
+      <span class="sync-badge syncing" id="syncBadge"><span class="dot"></span><span id="syncBadgeText">Syncing…</span></span>
+    </div>
     <h1 id="topTitle">Price Master</h1>
     <div class="stripe"></div>
   </div>
@@ -228,8 +250,7 @@ input,select,textarea{font-family:inherit; font-size:15px;}
   <!-- HISTORY -->
   <div class="view" id="view-history">
     <div class="hist-filter" id="historyFilter">
-      <button class="hist-filter-btn active" data-filter="all">All</button>
-      <button class="hist-filter-btn" data-filter="normal">Invoice</button>
+      <button class="hist-filter-btn active" data-filter="normal">Invoice</button>
       <button class="hist-filter-btn" data-filter="gst">GST Invoice</button>
     </div>
     <div id="historyList"></div>
@@ -735,15 +756,17 @@ function setInvoiceMode(mode){
   }
 }
 
+let autoInvoiceNo = '';
 function resetInvoiceForm(){
   document.getElementById('buyerName').value='';
   document.getElementById('buyerMobile').value='';
   document.getElementById('buyerAddress').value='';
   document.getElementById('buyerGstin').value='';
   document.getElementById('buyerState').value='06';
-  document.getElementById('invoiceNo').value = invoiceMode==='gst'
+  autoInvoiceNo = invoiceMode==='gst'
     ? (settings.gstPrefix||'') + settings.gstNextNum
     : (settings.prefix||'') + settings.nextNum;
+  document.getElementById('invoiceNo').value = autoInvoiceNo;
   document.getElementById('invoiceDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('invoiceDiscount').value = '';
   document.getElementById('gstToggle').value = 'with';
@@ -779,15 +802,42 @@ document.getElementById('venusBillBtn').addEventListener('click', ()=>{
 });
 
 /* Save invoice */
-document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
+document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
   const buyerName = document.getElementById('buyerName').value.trim();
   if(!buyerName){ alert('Please enter the customer name.'); return; }
   const validItems = currentItems.filter(it => (it.desc && it.desc.trim()) && (it.qty>0));
   if(validItems.length===0){ alert('Please add at least one item.'); return; }
+
+  const saveBtn = document.getElementById('saveInvoiceBtn');
+  saveBtn.disabled = true;
+
+  const invoiceNoField = document.getElementById('invoiceNo');
+  let finalInvoiceNo = invoiceNoField.value.trim();
+  let numberWasAutoAllocated = false;
+
+  // Sequential & multi-device protection: only re-allocate atomically when the
+  // number on screen is still the auto-suggested one (i.e. user hasn't typed a custom number)
+  if(editingIndex === null && finalInvoiceNo === autoInvoiceNo){
+    saveBtn.textContent = 'Reserving number…';
+    try{
+      const allocated = await nextInvoiceNumber(invoiceMode);
+      const prefix = invoiceMode==='gst' ? (settings.gstPrefix||'') : (settings.prefix||'');
+      finalInvoiceNo = prefix + allocated;
+      invoiceNoField.value = finalInvoiceNo;
+      if(invoiceMode === 'gst') settings.gstNextNum = allocated + 1;
+      else settings.nextNum = allocated + 1;
+      numberWasAutoAllocated = true;
+    }catch(e){
+      console.warn('Sequential lock unavailable, falling back to local numbering', e);
+      toast('⚠ Offline — number not multi-device protected this time');
+    }
+  }
+
+  saveBtn.textContent = 'Saving…';
   const totals = renderTotals();
   const inv = {
     id: Date.now(),
-    invoiceNo: document.getElementById('invoiceNo').value,
+    invoiceNo: finalInvoiceNo,
     date: document.getElementById('invoiceDate').value,
     buyer: {
       name: buyerName,
@@ -805,18 +855,18 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', ()=>{
     inv.id = invoices[editingIndex].id;
     invoices[editingIndex] = inv;
     LS.set('sss_invoices', invoices);
-    toast('Invoice updated: ' + inv.invoiceNo);
+    toast('✅ Invoice updated: ' + inv.invoiceNo);
   } else {
     invoices.unshift(inv);
     LS.set('sss_invoices', invoices);
-    if(invoiceMode === 'gst'){
-      settings.gstNextNum = (parseInt(settings.gstNextNum)||1) + 1;
-    } else {
-      settings.nextNum = (parseInt(settings.nextNum)||1) + 1;
+    if(!numberWasAutoAllocated){
+      if(invoiceMode === 'gst'){ settings.gstNextNum = (parseInt(settings.gstNextNum)||1) + 1; }
+      else{ settings.nextNum = (parseInt(settings.nextNum)||1) + 1; }
     }
     LS.set('sss_settings', settings);
-    toast('Invoice saved: ' + inv.invoiceNo);
+    toast('✅ Invoice saved: ' + inv.invoiceNo);
   }
+  saveBtn.disabled = false;
   resetInvoiceForm();
 });
 
@@ -1060,7 +1110,7 @@ function shareInvoice(inv){
 }
 
 /* ===================== History view ===================== */
-let historyFilter = 'all';
+let historyFilter = 'normal';
 function invoiceTypeOf(inv){
   return (settings.gstPrefix && (inv.invoiceNo||'').indexOf(settings.gstPrefix) === 0) ? 'gst' : 'normal';
 }
@@ -1068,7 +1118,7 @@ function renderHistory(){
   const box = document.getElementById('historyList');
   const filtered = [];
   invoices.forEach((inv, idx)=>{
-    if(historyFilter==='all' || invoiceTypeOf(inv)===historyFilter) filtered.push({inv, idx});
+    if(invoiceTypeOf(inv)===historyFilter) filtered.push({inv, idx});
   });
   if(invoices.length===0){
     box.innerHTML = '<div class="empty"><div class="ic">🧾</div>No invoices saved yet.</div>';
@@ -1260,57 +1310,131 @@ const firebaseConfig = {
 let cloudDb = null;
 let cloudSyncTimer = null;
 let cloudSyncing = false;
+let lastCloudUpdatedAt = null;
+let firstLoadDone = false;
+const DEVICE_ID = (function(){
+  let id = localStorage.getItem('sss_device_id');
+  if(!id){ id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); localStorage.setItem('sss_device_id', id); }
+  return id;
+})();
 
 function initCloudSync(){
   try{
-    if(typeof firebase === 'undefined'){ console.warn('Firebase SDK not loaded, cloud sync disabled'); return; }
+    if(typeof firebase === 'undefined'){ console.warn('Firebase SDK not loaded, cloud sync disabled'); setCloudStatus('offline'); return; }
     firebase.initializeApp(firebaseConfig);
     cloudDb = firebase.database();
-    loadFromCloud();
-  }catch(e){ console.warn('Cloud sync unavailable', e); }
+    // Auto-Sync on Launch: pull immediately, then keep listening in the
+    // background so every connected device stays in sync automatically.
+    listenToCloud();
+  }catch(e){ console.warn('Cloud sync unavailable', e); setCloudStatus('offline'); }
 }
 
-function loadFromCloud(){
+function applyCloudData(data){
+  if(data.settings) settings = data.settings;
+  if(data.overrides) overrides = data.overrides;
+  if(data.customParts) customParts = data.customParts;
+  if(data.invoices) invoices = data.invoices;
+  localStorage.setItem('sss_settings', JSON.stringify(settings));
+  localStorage.setItem('sss_price_overrides', JSON.stringify(overrides));
+  localStorage.setItem('sss_custom_parts', JSON.stringify(customParts));
+  localStorage.setItem('sss_invoices', JSON.stringify(invoices));
+  refreshParts(); renderPartList();
+  if(document.getElementById('view-history').classList.contains('active')) renderHistory();
+  if(document.getElementById('view-settings').classList.contains('active')) loadSettingsForm();
+}
+
+function listenToCloud(){
   if(!cloudDb) return;
   setCloudStatus('syncing');
-  cloudDb.ref('backup').once('value').then(snap=>{
+  cloudDb.ref('backup').on('value', snap=>{
     const data = snap.val();
     setCloudStatus('connected');
-    if(!data) return; // nothing in cloud yet - local data will push up on next change
-    if(data.settings) settings = data.settings;
-    if(data.overrides) overrides = data.overrides;
-    if(data.customParts) customParts = data.customParts;
-    if(data.invoices) invoices = data.invoices;
-    localStorage.setItem('sss_settings', JSON.stringify(settings));
-    localStorage.setItem('sss_price_overrides', JSON.stringify(overrides));
-    localStorage.setItem('sss_custom_parts', JSON.stringify(customParts));
-    localStorage.setItem('sss_invoices', JSON.stringify(invoices));
-    refreshParts(); renderPartList();
-    if(document.getElementById('view-history').classList.contains('active')) renderHistory();
-    if(document.getElementById('view-settings').classList.contains('active')) loadSettingsForm();
-  }).catch(err=>{ console.warn('Cloud load failed', err); setCloudStatus('offline'); });
+    if(!data){ firstLoadDone = true; return; } // nothing in cloud yet - local data will push up on next change
+    // skip re-applying data this same device just wrote, and skip no-op updates
+    if(data.updatedAt && data.updatedAt === lastCloudUpdatedAt) { firstLoadDone = true; return; }
+    lastCloudUpdatedAt = data.updatedAt;
+    if(data.updatedBy === DEVICE_ID){ firstLoadDone = true; return; }
+    applyCloudData(data);
+    if(!firstLoadDone){
+      firstLoadDone = true;
+      toast('🔄 Synced with all your devices');
+    } else {
+      toast('🔄 Updated from another device');
+    }
+  }, err=>{ console.warn('Cloud sync listener failed', err); setCloudStatus('offline'); });
 }
 
 function pushToCloud(){
   if(!cloudDb) return;
   clearTimeout(cloudSyncTimer);
-  cloudSyncTimer = setTimeout(()=>{
-    cloudSyncing = true;
-    setCloudStatus('syncing');
-    cloudDb.ref('backup').set({
-      settings, overrides, customParts, invoices,
-      updatedAt: new Date().toISOString()
-    }).then(()=>{ cloudSyncing = false; setCloudStatus('connected'); })
-      .catch(err=>{ cloudSyncing = false; console.warn('Cloud save failed', err); setCloudStatus('offline'); });
-  }, 600);
+  cloudSyncTimer = setTimeout(()=>doPushToCloud(0), 600);
+}
+
+function doPushToCloud(attempt){
+  if(!cloudDb) return;
+  cloudSyncing = true;
+  setCloudStatus('syncing');
+  const updatedAt = new Date().toISOString();
+  cloudDb.ref('backup').set({
+    settings, overrides, customParts, invoices,
+    updatedAt, updatedBy: DEVICE_ID
+  }).then(()=>{
+    cloudSyncing = false;
+    lastCloudUpdatedAt = updatedAt;
+    setCloudStatus('connected');
+  }).catch(err=>{
+    cloudSyncing = false;
+    console.warn('Cloud save failed (attempt ' + (attempt+1) + ')', err);
+    const nextAttempt = attempt + 1;
+    if(nextAttempt <= 4){
+      // Background sync retry with exponential backoff
+      setCloudStatus('syncing');
+      setTimeout(()=>doPushToCloud(nextAttempt), Math.min(1500 * Math.pow(2, attempt), 15000));
+    } else {
+      setCloudStatus('offline');
+      toast('⚠ Sync failed — saved on this device only, will retry later');
+      // one more slow background retry, keeps trying quietly without blocking the user
+      setTimeout(()=>doPushToCloud(0), 30000);
+    }
+  });
 }
 
 function setCloudStatus(state){
   const el = document.getElementById('cloudStatus');
-  if(!el) return;
-  if(state==='connected') el.textContent = '☁️ Synced to cloud';
-  else if(state==='syncing') el.textContent = '☁️ Syncing…';
-  else el.textContent = '⚠️ Offline (saved on this device only)';
+  const badge = document.getElementById('syncBadge');
+  const badgeText = document.getElementById('syncBadgeText');
+  if(el){
+    if(state==='connected') el.textContent = '☁️ Synced to cloud';
+    else if(state==='syncing') el.textContent = '☁️ Syncing…';
+    else el.textContent = '⚠️ Offline (saved on this device only)';
+  }
+  if(badge && badgeText){
+    badge.classList.remove('syncing','offline');
+    if(state==='connected'){ badgeText.textContent = 'Synced'; }
+    else if(state==='syncing'){ badge.classList.add('syncing'); badgeText.textContent = 'Syncing…'; }
+    else { badge.classList.add('offline'); badgeText.textContent = 'Offline'; }
+  }
+}
+
+/* ---- Sequential & multi-device safe invoice numbering ----
+   Uses a Firebase Realtime Database transaction as an atomic "lock":
+   the server retries the update until no other device raced it, so two
+   phones saving a bill at the same second can never receive the same
+   invoice number. Falls back to the local settings counter when offline. */
+function nextInvoiceNumber(mode){
+  const key = mode === 'gst' ? 'gst' : 'normal';
+  const localFallback = mode === 'gst' ? (parseInt(settings.gstNextNum)||1) : (parseInt(settings.nextNum)||1);
+  if(!cloudDb){
+    return Promise.resolve(localFallback);
+  }
+  return cloudDb.ref('counters/' + key).transaction(current=>{
+    const base = (current === null || current === undefined) ? localFallback : Math.max(current, localFallback);
+    return base + 1; // value stored is the NEXT number to hand out
+  }).then(result=>{
+    if(!result.committed) return localFallback;
+    const storedNext = result.snapshot.val();
+    return storedNext - 1; // the number allocated to this invoice
+  });
 }
 
 window.addEventListener('DOMContentLoaded', initCloudSync);
