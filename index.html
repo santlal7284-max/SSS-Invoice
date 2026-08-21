@@ -64,7 +64,8 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 
 /* search */
 .searchbar{display:flex; gap:8px; margin-bottom:12px;}
-.searchbar input{flex:1; padding:12px 14px; border-radius:var(--radius-md); border:1.5px solid var(--line); background:var(--surface); box-shadow:var(--shadow-xs);}
+.searchbar input{flex:1; min-width:0; padding:12px 14px; border-radius:var(--radius-md); border:1.5px solid var(--line); background:var(--surface); box-shadow:var(--shadow-xs); font-size:14px;}
+.searchbar input::placeholder{font-size:13.5px; color:var(--text-faint);}
 .searchbar input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft);}
 .searchbar select{padding:12px 8px; border-radius:var(--radius-md); border:1.5px solid var(--line); background:var(--surface); max-width:130px;}
 
@@ -195,7 +196,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
   <!-- PRICE MASTER -->
   <div class="view active" id="view-master">
     <div class="searchbar">
-      <input type="text" id="searchInput" placeholder="Search part code or description…">
+      <input type="text" id="searchInput" placeholder="Search parts…">
       <select id="categoryFilter"><option value="">All Categories</option></select>
     </div>
     <div class="result-count" id="resultCount"></div>
@@ -254,8 +255,21 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 
   <!-- HISTORY -->
   <div class="view" id="view-history">
+    <div class="card" id="histSummaryCard" style="padding:14px 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div>
+          <div style="font-size:10.5px; color:var(--text-faint); font-weight:700; text-transform:uppercase; letter-spacing:0.05em;" id="histSummaryLabel">This Month</div>
+          <div style="font-size:22px; font-weight:800; color:var(--ink); font-family:'Barlow Condensed',sans-serif;" id="histSummaryAmt">₹0</div>
+        </div>
+        <div style="text-align:right; font-size:12.5px; color:var(--text-dim); font-weight:600;" id="histSummaryCount">0 invoices</div>
+      </div>
+    </div>
+    <div class="searchbar">
+      <input type="text" id="historySearch" placeholder="Search name, mobile, or item…">
+    </div>
     <div class="hist-filter" id="historyFilter">
-      <button class="hist-filter-btn active" data-filter="normal">Invoice</button>
+      <button class="hist-filter-btn active" data-filter="all">All</button>
+      <button class="hist-filter-btn" data-filter="normal">Invoice</button>
       <button class="hist-filter-btn" data-filter="gst">GST Invoice</button>
     </div>
     <div id="historyList"></div>
@@ -330,6 +344,27 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="review-overlay" id="addPartModal">
+  <div class="review-card">
+    <h3>Add New Part</h3>
+    <p style="font-size:12.5px; color:var(--text-dim); margin:0 0 12px;">Add a custom part to your price list.</p>
+    <div class="field"><label>Part Code</label><input id="npCode" placeholder="e.g. WM-MX-103"></div>
+    <div class="field"><label>Description</label><input id="npDesc" placeholder="e.g. Wonder Maxie Jar Set"></div>
+    <div class="row2">
+      <div class="field"><label>Category</label><input id="npCat" placeholder="General Item"></div>
+      <div class="field"><label>HSN Code</label><input id="npHsn" placeholder="998396"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Franchisee Basic ₹</label><input id="npFbasic" type="number" step="0.01" placeholder="0"></div>
+      <div class="field"><label>Customer Basic ₹</label><input id="npCbasic" type="number" step="0.01" placeholder="0"></div>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-outline" style="flex:1" id="npCancelBtn">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" id="npSaveBtn">Add Part</button>
+    </div>
+  </div>
+</div>
 
 <div class="review-overlay" id="reviewModal">
   <div class="review-card">
@@ -571,21 +606,42 @@ document.getElementById('partList').addEventListener('click', (e)=>{
   toast('Original rate restored');
 });
 
-document.getElementById('addPartBtn').addEventListener('click', ()=>{
-  const code = prompt('New Part Code:'); if(!code) return;
-  if(findPart(code)){ alert('This code already exists.'); return; }
-  const cat = prompt('Category:','General Item') || 'General Item';
-  const desc = prompt('Description:'); if(!desc) return;
-  const hsn = prompt('HSN Code:','998396') || '998396';
-  const fbasic = parseFloat(prompt('Franchisee Basic Price:','0')) || 0;
-  const cbasic = parseFloat(prompt('Customer Basic Price:','0')) || 0;
+function openAddPartModal(){
+  document.getElementById('npCode').value = '';
+  document.getElementById('npDesc').value = '';
+  document.getElementById('npCat').value = '';
+  document.getElementById('npHsn').value = '998396';
+  document.getElementById('npFbasic').value = '';
+  document.getElementById('npCbasic').value = '';
+  document.getElementById('addPartModal').style.display = 'flex';
+  setTimeout(()=>document.getElementById('npCode').focus(), 80);
+}
+function closeAddPartModal(){
+  document.getElementById('addPartModal').style.display = 'none';
+}
+document.getElementById('addPartBtn').addEventListener('click', openAddPartModal);
+document.getElementById('npCancelBtn').addEventListener('click', closeAddPartModal);
+document.getElementById('addPartModal').addEventListener('click', (e)=>{
+  if(e.target.id === 'addPartModal') closeAddPartModal();
+});
+document.getElementById('npSaveBtn').addEventListener('click', ()=>{
+  const code = document.getElementById('npCode').value.trim();
+  const desc = document.getElementById('npDesc').value.trim();
+  if(!code){ toast('⚠ Please enter a part code'); document.getElementById('npCode').focus(); return; }
+  if(!desc){ toast('⚠ Please enter a description'); document.getElementById('npDesc').focus(); return; }
+  if(findPart(code)){ toast('⚠ This code already exists'); document.getElementById('npCode').focus(); return; }
+  const cat = document.getElementById('npCat').value.trim() || 'General Item';
+  const hsn = document.getElementById('npHsn').value.trim() || '998396';
+  const fbasic = parseFloat(document.getElementById('npFbasic').value) || 0;
+  const cbasic = parseFloat(document.getElementById('npCbasic').value) || 0;
   customParts.push([code, hsn, cat, desc, fbasic, cbasic]);
   LS.set('sss_custom_parts', customParts);
   refreshParts();
   if(!cats.includes(cat)){ cats.push(cat); cats.sort(); const o=document.createElement('option'); o.value=cat;o.textContent=cat; catFilter.appendChild(o); }
   document.getElementById('searchInput').value = code;
   renderPartList();
-  toast('New part added');
+  closeAddPartModal();
+  toast('✅ New part added');
 });
 
 /* ===================== Invoice view ===================== */
@@ -853,6 +909,7 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     },
     items: validItems,
     totals,
+    type: invoiceMode,
     showTerms: document.getElementById('showTermsToggle').checked,
     settingsSnapshot: {...settings}
   };
@@ -1115,22 +1172,45 @@ function shareInvoice(inv){
 }
 
 /* ===================== History view ===================== */
-let historyFilter = 'normal';
+let historyFilter = 'all';
+let historySearchQuery = '';
+
 function invoiceTypeOf(inv){
+  if(inv.type === 'gst' || inv.type === 'normal') return inv.type;
   return (settings.gstPrefix && (inv.invoiceNo||'').indexOf(settings.gstPrefix) === 0) ? 'gst' : 'normal';
 }
+
+function invoiceMatchesSearch(inv, q){
+  if(!q) return true;
+  const haystackParts = [inv.buyer.name, inv.buyer.mobile, inv.invoiceNo]
+    .concat((inv.items||[]).map(it=>it.desc));
+  return matchesQuery(haystackParts.join(' '), q);
+}
+
+function renderHistorySummary(filtered){
+  const now = new Date();
+  const ym = now.toISOString().slice(0,7); // 'YYYY-MM'
+  const thisMonth = filtered.filter(({inv}) => (inv.date||'').slice(0,7) === ym);
+  const total = thisMonth.reduce((s,{inv}) => s + (inv.totals.rounded||0), 0);
+  document.getElementById('histSummaryAmt').textContent = '₹' + fmt(total);
+  document.getElementById('histSummaryCount').textContent = thisMonth.length + ' invoice' + (thisMonth.length===1?'':'s') + ' this month';
+}
+
 function renderHistory(){
   const box = document.getElementById('historyList');
+  const q = historySearchQuery.trim();
   const filtered = [];
   invoices.forEach((inv, idx)=>{
-    if(invoiceTypeOf(inv)===historyFilter) filtered.push({inv, idx});
+    const typeOk = historyFilter==='all' || invoiceTypeOf(inv)===historyFilter;
+    if(typeOk && invoiceMatchesSearch(inv, q)) filtered.push({inv, idx});
   });
+  renderHistorySummary(invoices.map((inv,idx)=>({inv,idx})));
   if(invoices.length===0){
     box.innerHTML = '<div class="empty"><div class="ic">🧾</div>No invoices saved yet.</div>';
     return;
   }
   if(filtered.length===0){
-    box.innerHTML = '<div class="empty"><div class="ic">🧾</div>No invoices in this category.</div>';
+    box.innerHTML = '<div class="empty"><div class="ic">🔍</div>No invoices match your search.</div>';
     return;
   }
   box.innerHTML = '';
@@ -1141,7 +1221,7 @@ function renderHistory(){
     div.className = 'hist-row';
     div.innerHTML = `
       <div class="top"><span>${esc(inv.invoiceNo)}${badge}</span><span>${esc(inv.date)}</span></div>
-      <div class="sub">${esc(inv.buyer.name)}</div>
+      <div class="sub">${esc(inv.buyer.name)}${inv.buyer.mobile ? ' · '+esc(inv.buyer.mobile) : ''}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
         <button class="btn btn-outline" data-view="${idx}">👁 View</button>
@@ -1151,6 +1231,11 @@ function renderHistory(){
     box.appendChild(div);
   });
 }
+
+document.getElementById('historySearch').addEventListener('input', (e)=>{
+  historySearchQuery = e.target.value;
+  renderHistory();
+});
 
 document.getElementById('historyFilter').addEventListener('click', (e)=>{
   const btn = e.target.closest('[data-filter]');
