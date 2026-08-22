@@ -426,6 +426,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 <script src="data.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
 <script>
 /* ===================== Storage helpers ===================== */
 const CLOUD_KEYS = ['sss_settings','sss_price_overrides','sss_custom_parts','sss_invoices'];
@@ -1478,9 +1479,16 @@ function initCloudSync(){
     if(typeof firebase === 'undefined'){ console.warn('Firebase SDK not loaded, cloud sync disabled'); setCloudStatus('offline'); return; }
     firebase.initializeApp(firebaseConfig);
     cloudDb = firebase.database();
-    // Auto-Sync on Launch: pull immediately, then keep listening in the
-    // background so every connected device stays in sync automatically.
-    listenToCloud();
+    setCloudStatus('syncing');
+    firebase.auth().signInAnonymously().then(()=>{
+      // Auto-Sync on Launch: pull immediately, then keep listening in the
+      // background so every connected device stays in sync automatically.
+      listenToCloud();
+    }).catch(e=>{
+      console.warn('Cloud auth failed', e);
+      cloudDb = null;
+      setCloudStatus('offline');
+    });
   }catch(e){ console.warn('Cloud sync unavailable', e); setCloudStatus('offline'); }
 }
 
