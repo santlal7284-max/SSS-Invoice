@@ -1244,7 +1244,7 @@ function shiftHistoryMonth(delta){
   const [y,m] = historySummaryYm.split('-').map(Number);
   const d = new Date(y, m-1+delta, 1);
   historySummaryYm = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-  renderHistorySummary(invoices.map((inv,idx)=>({inv,idx})));
+  renderHistory();
 }
 document.getElementById('histMonthPrev').addEventListener('click', ()=>shiftHistoryMonth(-1));
 document.getElementById('histMonthNext').addEventListener('click', ()=>shiftHistoryMonth(1));
@@ -1262,10 +1262,12 @@ function renderHistorySummary(filtered){
 function renderHistory(){
   const box = document.getElementById('historyList');
   const q = historySearchQuery.trim();
+  const searching = q.length > 0;
   const filtered = [];
   invoices.forEach((inv, idx)=>{
     const typeOk = historyFilter==='all' || invoiceTypeOf(inv)===historyFilter;
-    if(typeOk && invoiceMatchesSearch(inv, q)) filtered.push({inv, idx});
+    const monthOk = searching || (inv.date||'').slice(0,7) === historySummaryYm;
+    if(typeOk && monthOk && invoiceMatchesSearch(inv, q)) filtered.push({inv, idx});
   });
   renderHistorySummary(invoices.map((inv,idx)=>({inv,idx})));
   if(invoices.length===0){
@@ -1273,7 +1275,7 @@ function renderHistory(){
     return;
   }
   if(filtered.length===0){
-    box.innerHTML = '<div class="empty"><div class="ic">🔍</div>No invoices match your search.</div>';
+    box.innerHTML = '<div class="empty"><div class="ic">🔍</div>'+(searching ? 'No invoices match your search.' : 'No invoices for '+formatYm(historySummaryYm)+'.')+'</div>';
     return;
   }
   box.innerHTML = '';
