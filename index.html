@@ -19,6 +19,12 @@
   --accent:#E3A23D; --accent-deep:#B87A1E; --accent-soft:#FBF0DA;
   --green:#1FA971; --green-soft:#E4F7EE;
   --red:#E5493E; --red-soft:#FCEAE8;
+  --c-master:#C2760F; --c-master-soft:#FBF0DA;
+  --c-invoice:#5B4FE0; --c-invoice-soft:#ECEAFC;
+  --c-gst:#0E9488; --c-gst-soft:#DFF5F1;
+  --c-history:#D6486B; --c-history-soft:#FBE7EC;
+  --c-settings:#46507A; --c-settings-soft:#EAECF5;
+  --section:var(--c-master); --section-soft:var(--c-master-soft);
   --radius-lg:20px; --radius-md:14px; --radius-sm:10px;
   --shadow-xs:0 1px 2px rgba(18,20,50,.05);
   --shadow-sm:0 2px 8px rgba(18,20,50,.06), 0 1px 2px rgba(18,20,50,.04);
@@ -28,6 +34,14 @@
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{margin:0; padding:0; background:var(--paper); color:var(--text); font-family:'Inter',system-ui,sans-serif; height:100%; -webkit-font-smoothing:antialiased;}
+body{
+  background:
+    radial-gradient(560px 420px at -8% -6%, rgba(91,79,224,.10), transparent 60%),
+    radial-gradient(520px 400px at 108% 4%, rgba(14,148,136,.09), transparent 60%),
+    radial-gradient(600px 460px at 50% 115%, rgba(227,162,61,.10), transparent 60%),
+    #F5F3FB;
+  background-attachment:fixed;
+}
 h1,h2,h3,.display{font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:0.01em;}
 .mono{font-family:'JetBrains Mono',monospace;}
 button{font-family:inherit; cursor:pointer;}
@@ -38,12 +52,17 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 @keyframes pulseDot{0%,100%{opacity:1;} 50%{opacity:.35;}}
 
 #app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:var(--paper); position:relative;}
+#app[data-section="master"]{--section:var(--c-master); --section-soft:var(--c-master-soft);}
+#app[data-section="invoice"]{--section:var(--c-invoice); --section-soft:var(--c-invoice-soft);}
+#app[data-section="gst"]{--section:var(--c-gst); --section-soft:var(--c-gst-soft);}
+#app[data-section="history"]{--section:var(--c-history); --section-soft:var(--c-history-soft);}
+#app[data-section="settings"]{--section:var(--c-settings); --section-soft:var(--c-settings-soft);}
 
 /* Top bar */
-.topbar{background:linear-gradient(150deg,var(--ink),var(--ink-2) 65%); color:#fff; padding:16px 18px 26px; position:sticky; top:0; z-index:20; border-radius:0 0 26px 26px; box-shadow:var(--shadow-md);}
+.topbar{background:linear-gradient(150deg,var(--ink),var(--ink-2) 60%,var(--section) 165%); color:#fff; padding:16px 18px 26px; position:sticky; top:0; z-index:20; border-radius:0 0 26px 26px; box-shadow:var(--shadow-md); transition:background .35s var(--ease);}
 .topbar .eyebrow{font-size:10.5px; text-transform:uppercase; letter-spacing:0.14em; color:rgba(255,255,255,.5); font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:8px;}
 .topbar h1{margin:4px 0 0; font-size:25px; line-height:1.05; letter-spacing:0.005em;}
-.topbar .stripe{display:none;}
+.topbar .stripe{display:block; height:3px; width:38px; border-radius:3px; margin-top:12px; background:var(--section); box-shadow:0 0 0 3px rgba(255,255,255,.08); transition:background .35s var(--ease);}
 .sync-badge{display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,.85); text-transform:none; background:rgba(255,255,255,.08); padding:4px 10px 4px 8px; border-radius:20px; border:1px solid rgba(255,255,255,.12);}
 .sync-badge .dot{width:6px; height:6px; border-radius:50%; background:#5FE3A0; box-shadow:0 0 0 3px rgba(95,227,160,0.2);}
 .sync-badge.syncing .dot{background:var(--accent); animation:pulseDot 1s infinite;}
@@ -53,8 +72,9 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .view{display:none; flex:1; padding:16px 14px 108px; overflow-y:auto; margin-top:-12px;}
 .view.active{display:block; animation:fadeSlideIn .32s var(--ease);}
 
-.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); padding:16px; margin-bottom:12px; box-shadow:var(--shadow-sm);}
-.card h3{margin:0 0 13px; font-size:11.5px; font-family:'Inter',sans-serif; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em;}
+.card{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--section); border-radius:var(--radius-lg); padding:16px; margin-bottom:12px; box-shadow:var(--shadow-sm); transition:border-color .35s var(--ease);}
+.card h3{margin:0 0 13px; font-size:11.5px; font-family:'Inter',sans-serif; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:7px;}
+.card h3::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--section); flex-shrink:0;}
 
 .field{margin-bottom:11px;}
 .field label{display:block; font-size:11px; color:var(--text-faint); margin-bottom:5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;}
@@ -77,7 +97,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .part-row:has(.price-input.overridden){border-left-color:var(--accent);}
 .part-row .top{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
 .part-code{font-size:11.5px; color:var(--accent-deep); font-weight:700; letter-spacing:0.01em;}
-.part-cat{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.05em; font-weight:600;}
+.part-cat{font-size:9.5px; text-transform:uppercase; letter-spacing:0.04em; font-weight:800; padding:3px 9px; border-radius:20px; white-space:nowrap;}
 .part-desc{font-size:14.5px; font-weight:600; margin:4px 0 10px; color:var(--text); line-height:1.3;}
 .part-prices{display:flex; align-items:center; gap:10px; font-size:13px;}
 .part-prices .lbl{color:var(--text-faint); font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em;}
@@ -91,7 +111,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 /* buttons */
 .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:12px 16px; border-radius:var(--radius-sm); border:none; font-weight:700; font-size:14.5px; transition:transform .12s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease), opacity .18s var(--ease);}
 .btn:active{transform:scale(0.96);}
-.btn-primary{background:var(--ink); color:#fff; box-shadow:0 4px 14px rgba(18,20,43,0.28);}
+.btn-primary{background:linear-gradient(135deg,var(--ink),var(--ink-2) 55%,var(--section) 160%); color:#fff; box-shadow:0 4px 14px rgba(18,20,43,0.28);}
 .btn-amber{background:var(--accent); color:#2B1B00; box-shadow:0 4px 14px rgba(227,162,61,0.32);}
 .btn-outline{background:var(--surface-2); border:1.5px solid var(--line); color:var(--ink);}
 .btn-outline:hover{border-color:var(--ink-soft); background:#fff;}
@@ -125,6 +145,11 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .tab{flex:1; background:none; border:none; color:var(--text-faint); padding:8px 2px 7px; font-size:10px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:3px; border-radius:15px; transition:color .18s var(--ease), transform .12s var(--ease), background .2s var(--ease);}
 .tab .ic{font-size:17px; transition:transform .18s var(--ease);}
 .tab.active{color:var(--ink); background:var(--accent-soft);}
+.tab[data-tabcolor="master"].active{color:var(--c-master); background:var(--c-master-soft);}
+.tab[data-tabcolor="invoice"].active{color:var(--c-invoice); background:var(--c-invoice-soft);}
+.tab[data-tabcolor="gst"].active{color:var(--c-gst); background:var(--c-gst-soft);}
+.tab[data-tabcolor="history"].active{color:var(--c-history); background:var(--c-history-soft);}
+.tab[data-tabcolor="settings"].active{color:var(--c-settings); background:var(--c-settings-soft);}
 .tab.active .ic{transform:translateY(-1px) scale(1.06);}
 .tab:active{transform:scale(0.93);}
 
@@ -154,7 +179,12 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .hist-filter-btn{flex:1; background:none; border:none; color:var(--text-dim); padding:9px 4px; font-size:12.5px; font-weight:700; border-radius:10px; transition:background .18s var(--ease), color .18s var(--ease), box-shadow .18s var(--ease);}
 .hist-filter-btn.active{background:var(--surface); color:var(--ink); box-shadow:var(--shadow-xs);}
 .hist-badge{display:inline-block; font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:20px; letter-spacing:0.03em; margin-left:6px; vertical-align:middle; text-transform:uppercase;}
-.hist-badge.gst{background:var(--accent-soft); color:var(--accent-deep);}
+.hist-badge.gst{background:var(--c-gst-soft); color:var(--c-gst);}
+.hist-month-switcher{display:flex; align-items:center; justify-content:center; gap:10px;}
+.hist-month-switcher button{width:26px; height:26px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface-2); color:var(--section); font-size:15px; font-weight:800; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0; transition:background .15s var(--ease), opacity .15s var(--ease), transform .12s var(--ease);}
+.hist-month-switcher button:active{transform:scale(0.88);}
+.hist-month-switcher button:disabled{opacity:.3; cursor:default;}
+.hist-month-switcher span{font-size:11px; color:var(--text-dim); font-weight:800; text-transform:uppercase; letter-spacing:0.06em; min-width:112px; text-align:center;}
 .hist-badge.normal{background:var(--surface-2); color:var(--text-dim); border:1px solid var(--line);}
 .hist-row{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:13px 14px; margin-bottom:9px; box-shadow:var(--shadow-xs);}
 .hist-row .top{display:flex; justify-content:space-between; font-weight:700; color:var(--ink); font-size:14px;}
@@ -182,7 +212,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 </style>
 </head>
 <body>
-<div id="app">
+<div id="app" data-section="master">
 
   <div class="topbar">
     <div class="eyebrow">
@@ -209,7 +239,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
   <div class="view" id="view-invoice">
     <div class="card">
       <h3>Billing To</h3>
-      <button type="button" class="btn btn-outline" id="fillVenusBtn" style="margin-bottom:11px; font-size:12.5px; padding:8px 12px;">📑 Fill Venus Details</button>
+      <button type="button" class="btn btn-outline" id="fillVenusBtn" style="display:none; margin-bottom:11px; font-size:12.5px; padding:8px 12px;">📑 Fill Venus Details</button>
       <div class="field"><label>Customer / Company Name</label><input id="buyerName" placeholder="e.g. Venus Home Appliances Pvt. Ltd."></div>
       <div class="field"><label>Mobile Number</label><input id="buyerMobile" type="tel" placeholder="e.g. 9876543210" maxlength="15"></div>
       <div class="field"><label>Address</label><input id="buyerAddress" placeholder="Address"></div>
@@ -257,12 +287,14 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
   <!-- HISTORY -->
   <div class="view" id="view-history">
     <div class="card" id="histSummaryCard" style="padding:14px 16px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-        <div>
-          <div style="font-size:10.5px; color:var(--text-faint); font-weight:700; text-transform:uppercase; letter-spacing:0.05em;" id="histSummaryLabel">This Month</div>
-          <div style="font-size:22px; font-weight:800; color:var(--ink); font-family:'Barlow Condensed',sans-serif;" id="histSummaryAmt">₹0</div>
-        </div>
-        <div style="text-align:right; font-size:12.5px; color:var(--text-dim); font-weight:600;" id="histSummaryCount">0 invoices</div>
+      <div class="hist-month-switcher">
+        <button type="button" id="histMonthPrev" aria-label="Previous month">‹</button>
+        <span id="histSummaryLabel">This Month</span>
+        <button type="button" id="histMonthNext" aria-label="Next month">›</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:4px;">
+        <div style="font-size:22px; font-weight:800; color:var(--ink); font-family:'Barlow Condensed',sans-serif;" id="histSummaryAmt">₹0</div>
+        <div style="font-size:12.5px; color:var(--text-dim); font-weight:600;" id="histSummaryCount">0 invoices</div>
       </div>
     </div>
     <div class="searchbar">
@@ -336,11 +368,11 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
   </div>
 
   <div class="tabbar">
-    <button class="tab active" data-view="master"><span class="ic">🔧</span>Price Master</button>
-    <button class="tab" id="newInvoiceBtn" data-view="invoice"><span class="ic">🧾</span>Invoice</button>
-    <button class="tab" id="venusBillBtn" data-view="invoice"><span class="ic">📑</span>GST Invoice</button>
-    <button class="tab" data-view="history"><span class="ic">📋</span>History</button>
-    <button class="tab" data-view="settings"><span class="ic">⚙️</span>Settings</button>
+    <button class="tab active" data-view="master" data-tabcolor="master"><span class="ic">🔧</span>Price Master</button>
+    <button class="tab" id="newInvoiceBtn" data-view="invoice" data-tabcolor="invoice"><span class="ic">🧾</span>Invoice</button>
+    <button class="tab" id="venusBillBtn" data-view="invoice" data-tabcolor="gst"><span class="ic">📑</span>GST Invoice</button>
+    <button class="tab" data-view="history" data-tabcolor="history"><span class="ic">📋</span>History</button>
+    <button class="tab" data-view="settings" data-tabcolor="settings"><span class="ic">⚙️</span>Settings</button>
   </div>
 </div>
 
@@ -482,6 +514,7 @@ function switchToView(v, activeBtn, pushState){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   const btn = activeBtn || document.querySelector('.tab[data-view="'+v+'"]');
   if(btn) btn.classList.add('active');
+  document.getElementById('app').dataset.section = (btn && btn.dataset.tabcolor) || v;
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.getElementById('topEyebrow').textContent = titles[v][0];
@@ -547,6 +580,15 @@ function renderPartList(){
   const q = document.getElementById('searchInput').value.trim();
   const cat = catFilter.value;
   const filtered = PARTS_CACHE.filter(p=>matchesSearch(p,q,cat));
+  const CHIP_PALETTE = [
+    ['#5B4FE0','#ECEAFC'], ['#0E9488','#DFF5F1'], ['#D6486B','#FBE7EC'],
+    ['#C2760F','#FBF0DA'], ['#2F6FED','#E7EFFE'], ['#2E9E5B','#E3F6EA'], ['#8B5CF6','#F1ECFE']
+  ];
+  function chipColor(str){
+    let h = 0;
+    for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) | 0; }
+    return CHIP_PALETTE[Math.abs(h) % CHIP_PALETTE.length];
+  }
   const list = document.getElementById('partList');
   list.innerHTML = '';
   const show = filtered.slice(0, visibleCount);
@@ -558,7 +600,7 @@ function renderPartList(){
     div.innerHTML = `
       <div class="top">
         <span class="part-code mono">${esc(p.code)}${p.custom?' <span class=\"badge\">NEW</span>':''}</span>
-        <span class="part-cat">${esc(p.cat)}</span>
+        <span class="part-cat" style="background:${chipColor(p.cat)[1]}; color:${chipColor(p.cat)[0]};">${esc(p.cat)}</span>
       </div>
       <div class="part-desc">${esc(p.desc)} <span class="mono" style="color:var(--text-dim); font-weight:400; font-size:11px;">HSN ${esc(p.hsn)}</span></div>
       <div class="part-prices">
@@ -812,6 +854,7 @@ function setInvoiceMode(mode){
   const isGst = mode === 'gst';
   document.getElementById('gstToggleField').style.display = isGst ? 'none' : '';
   document.getElementById('discountField').style.display = isGst ? 'none' : '';
+  document.getElementById('fillVenusBtn').style.display = isGst ? '' : 'none';
   if(isGst){
     document.getElementById('gstToggle').value = 'with';
     document.getElementById('invoiceDiscount').value = '';
@@ -1192,13 +1235,28 @@ function invoiceMatchesSearch(inv, q){
   return matchesQuery(haystackParts.join(' '), q);
 }
 
+let historySummaryYm = new Date().toISOString().slice(0,7);
+function formatYm(ym){
+  const [y,m] = ym.split('-').map(Number);
+  return MONTH_NAMES[m-1] + ' ' + y;
+}
+function shiftHistoryMonth(delta){
+  const [y,m] = historySummaryYm.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  historySummaryYm = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  renderHistorySummary(invoices.map((inv,idx)=>({inv,idx})));
+}
+document.getElementById('histMonthPrev').addEventListener('click', ()=>shiftHistoryMonth(-1));
+document.getElementById('histMonthNext').addEventListener('click', ()=>shiftHistoryMonth(1));
+
 function renderHistorySummary(filtered){
-  const now = new Date();
-  const ym = now.toISOString().slice(0,7); // 'YYYY-MM'
-  const thisMonth = filtered.filter(({inv}) => (inv.date||'').slice(0,7) === ym);
-  const total = thisMonth.reduce((s,{inv}) => s + (inv.totals.rounded||0), 0);
+  const monthInvoices = filtered.filter(({inv}) => (inv.date||'').slice(0,7) === historySummaryYm);
+  const total = monthInvoices.reduce((s,{inv}) => s + (inv.totals.rounded||0), 0);
   document.getElementById('histSummaryAmt').textContent = '₹' + fmt(total);
-  document.getElementById('histSummaryCount').textContent = thisMonth.length + ' invoice' + (thisMonth.length===1?'':'s') + ' this month';
+  document.getElementById('histSummaryCount').textContent = monthInvoices.length + ' invoice' + (monthInvoices.length===1?'':'s');
+  document.getElementById('histSummaryLabel').textContent = formatYm(historySummaryYm);
+  const currentYm = new Date().toISOString().slice(0,7);
+  document.getElementById('histMonthNext').disabled = historySummaryYm >= currentYm;
 }
 
 function renderHistory(){
