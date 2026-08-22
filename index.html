@@ -209,6 +209,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
   <div class="view" id="view-invoice">
     <div class="card">
       <h3>Billing To</h3>
+      <button type="button" class="btn btn-outline" id="fillVenusBtn" style="margin-bottom:11px; font-size:12.5px; padding:8px 12px;">📑 Fill Venus Details</button>
       <div class="field"><label>Customer / Company Name</label><input id="buyerName" placeholder="e.g. Venus Home Appliances Pvt. Ltd."></div>
       <div class="field"><label>Mobile Number</label><input id="buyerMobile" type="tel" placeholder="e.g. 9876543210" maxlength="15"></div>
       <div class="field"><label>Address</label><input id="buyerAddress" placeholder="Address"></div>
@@ -840,6 +841,7 @@ function resetInvoiceForm(){
 
 document.getElementById('newInvoiceBtn').addEventListener('click', ()=>{
   setInvoiceMode('normal');
+  resetInvoiceForm();
 });
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -847,6 +849,9 @@ document.getElementById('venusBillBtn').addEventListener('click', ()=>{
   setInvoiceMode('gst');
   resetInvoiceForm();
   document.getElementById('topTitle').textContent = 'GST Invoice';
+});
+
+document.getElementById('fillVenusBtn').addEventListener('click', ()=>{
   document.getElementById('buyerName').value = 'Venus Home Appliances Pvt. Ltd.';
   document.getElementById('buyerAddress').value = '1st Floor AB-8, Community Center, New Delhi-110029';
   document.getElementById('buyerGstin').value = '07AABCV6878P1ZD';
