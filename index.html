@@ -327,14 +327,14 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
         <div class="field"><label>GST Rate (%)</label><input id="setGstRate" type="number"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>Invoice Prefix</label><input id="setPrefix" placeholder="SSS/FY/MM/TM/"></div>
+        <div class="field"><label>Invoice Prefix</label><input id="setPrefix" placeholder="SSS/MM/TM/"></div>
         <div class="field"><label>Next Invoice No.</label><input id="setNextNum" type="number"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>GST Invoice Prefix</label><input id="setGstPrefix" placeholder="VNS/FY/MM/"></div>
+        <div class="field"><label>GST Invoice Prefix</label><input id="setGstPrefix" placeholder="VNS/MM/"></div>
         <div class="field"><label>GST Invoice Next No.</label><input id="setGstNextNum" type="number"></div>
       </div>
-      <p style="font-size:12px; color:var(--text-dim); margin:-4px 0 0;">Write <b>MM</b> where the month should go and <b>FY</b> where the financial year should go (e.g. SSS/FY/MM/TM/). Month auto-switches every 1st of the month (08 for Aug, 09 for Sep...) and FY auto-switches every 1st April (e.g. 26-27) — bill numbers also reset to 1 automatically on 1 April.</p>
+      <p style="font-size:12px; color:var(--text-dim); margin:-4px 0 0;">Write <b>MM</b> where the month should go (e.g. SSS/MM/TM/) — it auto-switches every 1st of the month (08 for Aug, 09 for Sep...). On 1 April 2027, the prefix will automatically switch to the new format (SS/MM/26-27/01 for Invoice, SSS/MM/26-27/01 for GST) and bill numbers will reset to 1 — this happens once, automatically, and nothing changes before then.</p>
       <button class="btn btn-primary btn-block" id="saveSettingsBtn">Save Settings</button>
     </div>
 
@@ -480,9 +480,9 @@ const DEFAULT_SETTINGS = {
   stateCode: '06',
   pan: 'AWEPR6592C',
   gstRate: 18,
-  prefix: 'SSS/FY/MM/TM/',
+  prefix: 'SSS/MM/TM/',
   nextNum: 31,
-  gstPrefix: 'VNS/FY/MM/',
+  gstPrefix: 'VNS/MM/',
   gstNextNum: 1,
   appPin: '1234',
   lastKnownFY: null,
@@ -569,8 +569,6 @@ let invoices = LS.get('sss_invoices', []);
   let changed = false;
   let p = migratePrefixToMonthly(settings.prefix);
   let g = migratePrefixToMonthly(settings.gstPrefix);
-  p = migrateAddFY(p);
-  g = migrateAddFY(g);
   if(p !== settings.prefix){ settings.prefix = p; changed = true; }
   if(g !== settings.gstPrefix){ settings.gstPrefix = g; changed = true; }
   if(changed) LS.set('sss_settings', settings);
@@ -599,6 +597,15 @@ let invoices = LS.get('sss_invoices', []);
    app around the FY change, only ONE of them actually performs the reset
    — the others just adopt the result. This prevents two phones from both
    resetting to 1 and re-issuing the same invoice number twice. */
+// First-ever run under this app version: settings.lastKnownFY was never
+// tracked before, so it starts as null. That is NOT a real financial-year
+// rollover — just establish the baseline quietly, without touching bill
+// numbers. Only a later run where lastKnownFY was already set to a real
+// FY string, and now differs, means an actual 1 April rollover happened.
+if(settings.lastKnownFY === null || settings.lastKnownFY === undefined){
+  settings.lastKnownFY = currentFY();
+  LS.set('sss_settings', settings);
+}
 let pendingFYReset = (settings.lastKnownFY !== currentFY());
 function applyLocalFYReset(){
   settings.lastKnownFY = currentFY();
