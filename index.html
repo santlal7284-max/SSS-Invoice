@@ -62,6 +62,11 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .searchbar{display:flex; gap:8px; margin-bottom:10px;}
 .searchbar input{flex:1; padding:11px 12px; border-radius:8px; border:1.5px solid var(--border); background:#fff;}
 .searchbar select{padding:11px 8px; border-radius:8px; border:1.5px solid var(--border); background:#fff; max-width:130px;}
+.hist-month-switcher{display:flex; align-items:center; justify-content:center; gap:10px;}
+.hist-month-switcher button{width:26px; height:26px; border-radius:50%; border:1.5px solid var(--border); background:var(--navy-pale); color:var(--navy); font-size:15px; font-weight:800; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0; transition:background .15s var(--ease), opacity .15s var(--ease), transform .12s var(--ease);}
+.hist-month-switcher button:active{transform:scale(0.88);}
+.hist-month-switcher button:disabled{opacity:.3; cursor:default;}
+.hist-month-switcher span{font-size:11px; color:var(--text-dim); font-weight:800; text-transform:uppercase; letter-spacing:0.06em; min-width:112px; text-align:center;}
 
 .result-count{font-size:12px; color:var(--text-dim); margin:2px 2px 8px;}
 
@@ -282,6 +287,20 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 
   <!-- HISTORY -->
   <div class="view" id="view-history">
+    <div class="card" id="histSummaryCard" style="padding:14px 16px;">
+      <div class="hist-month-switcher">
+        <button type="button" id="histMonthPrev" aria-label="Previous month">‹</button>
+        <span id="histSummaryLabel">This Month</span>
+        <button type="button" id="histMonthNext" aria-label="Next month">›</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:4px;">
+        <div style="font-size:22px; font-weight:800; color:var(--navy); font-family:'Barlow Condensed',sans-serif;" id="histSummaryAmt">₹0</div>
+        <div style="font-size:12.5px; color:var(--text-dim); font-weight:600;" id="histSummaryCount">0 invoices</div>
+      </div>
+    </div>
+    <div class="searchbar">
+      <input type="text" id="historySearch" placeholder="Search name, mobile, or item…">
+    </div>
     <div class="hist-filter" id="historyFilter">
       <button class="hist-filter-btn active" data-filter="normal">Invoice</button>
       <button class="hist-filter-btn" data-filter="gst">GST Invoice</button>
@@ -308,13 +327,14 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
         <div class="field"><label>GST Rate (%)</label><input id="setGstRate" type="number"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>Invoice Prefix</label><input id="setPrefix" placeholder="SSS/07/TM/"></div>
+        <div class="field"><label>Invoice Prefix</label><input id="setPrefix" placeholder="SSS/FY/MM/TM/"></div>
         <div class="field"><label>Next Invoice No.</label><input id="setNextNum" type="number"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>GST Invoice Prefix</label><input id="setGstPrefix" placeholder="VNS/07/26-27/"></div>
+        <div class="field"><label>GST Invoice Prefix</label><input id="setGstPrefix" placeholder="VNS/FY/MM/"></div>
         <div class="field"><label>GST Invoice Next No.</label><input id="setGstNextNum" type="number"></div>
       </div>
+      <p style="font-size:12px; color:var(--text-dim); margin:-4px 0 0;">Write <b>MM</b> where the month should go and <b>FY</b> where the financial year should go (e.g. SSS/FY/MM/TM/). Month auto-switches every 1st of the month (08 for Aug, 09 for Sep...) and FY auto-switches every 1st April (e.g. 26-27) — bill numbers also reset to 1 automatically on 1 April.</p>
       <button class="btn btn-primary btn-block" id="saveSettingsBtn">Save Settings</button>
     </div>
 
@@ -369,6 +389,27 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 
 <div class="toast" id="toast"></div>
 
+<div class="review-overlay" id="addPartModal">
+  <div class="review-card">
+    <h3>Add New Part</h3>
+    <p style="font-size:12.5px; color:var(--text-dim); margin:0 0 12px;">Add a custom part to your price list.</p>
+    <div class="field"><label>Part Code</label><input id="npCode" placeholder="e.g. WM-MX-103"></div>
+    <div class="field"><label>Description</label><input id="npDesc" placeholder="e.g. Wonder Maxie Jar Set"></div>
+    <div class="row2">
+      <div class="field"><label>Category</label><input id="npCat" placeholder="General Item"></div>
+      <div class="field"><label>HSN Code</label><input id="npHsn" placeholder="998396"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Franchisee Basic ₹</label><input id="npFbasic" type="number" step="0.01" placeholder="0"></div>
+      <div class="field"><label>Customer Basic ₹</label><input id="npCbasic" type="number" step="0.01" placeholder="0"></div>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-outline" style="flex:1" id="npCancelBtn">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" id="npSaveBtn">Add Part</button>
+    </div>
+  </div>
+</div>
+
 <div class="review-overlay" id="reviewModal">
   <div class="review-card">
     <h3>Recheck Prices</h3>
@@ -419,11 +460,13 @@ const DEFAULT_SETTINGS = {
   stateCode: '06',
   pan: 'AWEPR6592C',
   gstRate: 18,
-  prefix: 'SSS/07/TM/',
+  prefix: 'SSS/FY/MM/TM/',
   nextNum: 31,
-  gstPrefix: 'VNS/07/',
+  gstPrefix: 'VNS/FY/MM/',
   gstNextNum: 1,
   appPin: '1234',
+  lastKnownFY: null,
+  prefixFormatV2Applied: false,
   signatureImage: DEFAULT_SIGNATURE
 };
 
@@ -432,9 +475,140 @@ function getSignature(){
 }
 
 let settings = LS.get('sss_settings', DEFAULT_SETTINGS);
+
+/* ---- Monthly & yearly-rolling invoice prefix ----
+   "MM" in a prefix always resolves to the CURRENT month (08 in August, 09
+   in September, ...) and "FY" resolves to the current GST financial year
+   (e.g. "26-27"), so a prefix like "SSS/FY/MM/TM/" needs zero manual
+   editing all year round. */
+function currentMonthMM(){
+  return String(new Date().getMonth() + 1).padStart(2, '0');
+}
+function padSeq(n){
+  return String(n).padStart(2, '0');
+}
+function currentFY(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const startYear = (now.getMonth() + 1 >= 4) ? y : y - 1; // FY starts 1 April
+  const last2 = n => String(n % 100).padStart(2, '0');
+  return last2(startYear) + '-' + last2(startYear + 1);
+}
+function resolvePrefix(template){
+  return (template || '').replace(/MM/g, currentMonthMM()).replace(/FY/g, currentFY());
+}
+function prefixToRegex(template){
+  if(!template) return null;
+  const escaped = template.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = escaped.replace(/MM/g, '\\d{2}').replace(/FY/g, '\\d{2}-\\d{2}');
+  return new RegExp('^' + pattern);
+}
+// One-time migration: older saved prefixes had the month baked in as plain
+// digits (e.g. "SSS/07/TM/"). Convert the 2-digit segment to "MM" so it
+// starts auto-rolling from now on, without losing the rest of the format.
+function migratePrefixToMonthly(str){
+  if(!str || str.indexOf('MM') !== -1) return str;
+  const parts = str.split('/');
+  let replaced = false;
+  for(let i = 0; i < parts.length; i++){
+    if(!replaced && /^\d{2}$/.test(parts[i])){ parts[i] = 'MM'; replaced = true; }
+  }
+  return replaced ? parts.join('/') : str;
+}
+// One-time migration: older prefixes had no financial-year segment at all.
+// Insert an "FY" token right after the company code so it starts
+// auto-rolling every 1st April, without you needing to retype anything.
+function migrateAddFY(str){
+  if(!str || str.indexOf('FY') !== -1) return str;
+  const parts = str.split('/');
+  parts.splice(1, 0, 'FY');
+  return parts.join('/');
+}
+(function migrateSettingsPrefixes(){
+  let changed = false;
+  let p = migratePrefixToMonthly(settings.prefix);
+  let g = migratePrefixToMonthly(settings.gstPrefix);
+  p = migrateAddFY(p);
+  g = migrateAddFY(g);
+  if(p !== settings.prefix){ settings.prefix = p; changed = true; }
+  if(g !== settings.gstPrefix){ settings.gstPrefix = g; changed = true; }
+  if(changed) LS.set('sss_settings', settings);
+})();
+
 let overrides = LS.get('sss_price_overrides', {});     // {code: {fbasic, cbasic}}
 let customParts = LS.get('sss_custom_parts', []);       // [[code,hsn,cat,desc,fbasic,cbasic], ...]
 let invoices = LS.get('sss_invoices', []);
+
+// One-time backfill: older saved invoices don't carry an explicit "type"
+// field — they were told apart from their invoiceNo prefix. Freeze that
+// classification onto each invoice NOW, using today's prefix pattern,
+// before the prefix format itself changes below — so old bills never get
+// misclassified after the format switch.
+(function backfillInvoiceTypes(){
+  let changed = false;
+  const gstRegexNow = prefixToRegex(settings.gstPrefix);
+  invoices.forEach(inv=>{
+    if(inv.type !== 'gst' && inv.type !== 'normal'){
+      inv.type = (gstRegexNow && gstRegexNow.test(inv.invoiceNo||'')) ? 'gst' : 'normal';
+      changed = true;
+    }
+  });
+  if(changed) LS.set('sss_invoices', invoices);
+})();
+
+/* ---- One-time scheduled prefix format upgrade ----
+   From 1 April 2027 (the next financial-year start), both invoice series
+   permanently switch to this fixed format — no more "VNS", and both
+   series share the same MM/FY/number structure:
+     Normal Invoice : SS/MM/FY/01
+     GST Invoice    : SSS/MM/FY/01
+   This runs exactly once (guarded by settings.prefixFormatV2Applied) and
+   never changes the prefix again after that. */
+(function scheduledPrefixFormatUpgrade(){
+  const upgradeDate = new Date(2027, 3, 1); // 1 April 2027
+  if(!settings.prefixFormatV2Applied && new Date() >= upgradeDate){
+    settings.prefix = 'SS/MM/FY/';
+    settings.gstPrefix = 'SSS/MM/FY/';
+    settings.prefixFormatV2Applied = true;
+    LS.set('sss_settings', settings);
+  }
+})();
+
+/* ---- Financial-year rollover: auto-reset bill numbers to 1 on 1 April ----
+   Guarded by a Firebase transaction so that if several devices open the
+   app around the FY change, only ONE of them actually performs the reset
+   — the others just adopt the result. This prevents two phones from both
+   resetting to 1 and re-issuing the same invoice number twice. */
+let pendingFYReset = (settings.lastKnownFY !== currentFY());
+function applyLocalFYReset(){
+  settings.lastKnownFY = currentFY();
+  settings.nextNum = 1;
+  settings.gstNextNum = 1;
+  LS.set('sss_settings', settings);
+  toast('📅 New financial year (' + currentFY() + ') — bill numbers reset to 1');
+}
+function tryCloudGuardedFYReset(){
+  if(!cloudDb || !pendingFYReset) return;
+  const newFY = currentFY();
+  cloudDb.ref('counters/fyLabel').transaction(current=>{
+    if(current === newFY) return; // someone already reset for this FY — abort, do nothing
+    return newFY;
+  }).then(result=>{
+    pendingFYReset = false;
+    if(result.committed){
+      // This device won the race — it performs the real reset for everyone
+      cloudDb.ref('counters/normal').set(1);
+      cloudDb.ref('counters/gst').set(1);
+    }
+    applyLocalFYReset();
+  }).catch(()=>{ /* stay pending, will retry once cloud is reachable */ });
+}
+if(pendingFYReset && !cloudDb){
+  // Offline at launch: reset locally now; nextInvoiceNumber() will still
+  // reconcile with the cloud counter (and the guarded reset above) once
+  // any device comes back online.
+  applyLocalFYReset();
+}
 
 /* ===================== Combined part list ===================== */
 function allParts(){
@@ -551,6 +725,15 @@ function renderPartList(){
   const q = document.getElementById('searchInput').value.trim();
   const cat = catFilter.value;
   const filtered = PARTS_CACHE.filter(p=>matchesSearch(p,q,cat));
+  const CHIP_PALETTE = [
+    ['#5B4FE0','#ECEAFC'], ['#0E9488','#DFF5F1'], ['#D6486B','#FBE7EC'],
+    ['#C2760F','#FBF0DA'], ['#2F6FED','#E7EFFE'], ['#2E9E5B','#E3F6EA'], ['#8B5CF6','#F1ECFE']
+  ];
+  function chipColor(str){
+    let h = 0;
+    for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) | 0; }
+    return CHIP_PALETTE[Math.abs(h) % CHIP_PALETTE.length];
+  }
   const list = document.getElementById('partList');
   list.innerHTML = '';
   const show = filtered.slice(0, visibleCount);
@@ -562,7 +745,7 @@ function renderPartList(){
     div.innerHTML = `
       <div class="top">
         <span class="part-code mono">${esc(p.code)}${p.custom?' <span class=\"badge\">NEW</span>':''}</span>
-        <span class="part-cat">${esc(p.cat)}</span>
+        <span class="part-cat" style="background:${chipColor(p.cat)[1]}; color:${chipColor(p.cat)[0]};">${esc(p.cat)}</span>
       </div>
       <div class="part-desc">${esc(p.desc)} <span class="mono" style="color:var(--text-dim); font-weight:400; font-size:11px;">HSN ${esc(p.hsn)}</span></div>
       <div class="part-prices">
@@ -611,21 +794,42 @@ document.getElementById('partList').addEventListener('click', (e)=>{
   toast('Original rate restored');
 });
 
-document.getElementById('addPartBtn').addEventListener('click', ()=>{
-  const code = prompt('New Part Code:'); if(!code) return;
-  if(findPart(code)){ alert('This code already exists.'); return; }
-  const cat = prompt('Category:','General Item') || 'General Item';
-  const desc = prompt('Description:'); if(!desc) return;
-  const hsn = prompt('HSN Code:','998396') || '998396';
-  const fbasic = parseFloat(prompt('Franchisee Basic Price:','0')) || 0;
-  const cbasic = parseFloat(prompt('Customer Basic Price:','0')) || 0;
+function openAddPartModal(){
+  document.getElementById('npCode').value = '';
+  document.getElementById('npDesc').value = '';
+  document.getElementById('npCat').value = '';
+  document.getElementById('npHsn').value = '998396';
+  document.getElementById('npFbasic').value = '';
+  document.getElementById('npCbasic').value = '';
+  document.getElementById('addPartModal').style.display = 'flex';
+  setTimeout(()=>document.getElementById('npCode').focus(), 80);
+}
+function closeAddPartModal(){
+  document.getElementById('addPartModal').style.display = 'none';
+}
+document.getElementById('addPartBtn').addEventListener('click', openAddPartModal);
+document.getElementById('npCancelBtn').addEventListener('click', closeAddPartModal);
+document.getElementById('addPartModal').addEventListener('click', (e)=>{
+  if(e.target.id === 'addPartModal') closeAddPartModal();
+});
+document.getElementById('npSaveBtn').addEventListener('click', ()=>{
+  const code = document.getElementById('npCode').value.trim();
+  const desc = document.getElementById('npDesc').value.trim();
+  if(!code){ toast('⚠ Please enter a part code'); document.getElementById('npCode').focus(); return; }
+  if(!desc){ toast('⚠ Please enter a description'); document.getElementById('npDesc').focus(); return; }
+  if(findPart(code)){ toast('⚠ This code already exists'); document.getElementById('npCode').focus(); return; }
+  const cat = document.getElementById('npCat').value.trim() || 'General Item';
+  const hsn = document.getElementById('npHsn').value.trim() || '998396';
+  const fbasic = parseFloat(document.getElementById('npFbasic').value) || 0;
+  const cbasic = parseFloat(document.getElementById('npCbasic').value) || 0;
   customParts.push([code, hsn, cat, desc, fbasic, cbasic]);
   LS.set('sss_custom_parts', customParts);
   refreshParts();
   if(!cats.includes(cat)){ cats.push(cat); cats.sort(); const o=document.createElement('option'); o.value=cat;o.textContent=cat; catFilter.appendChild(o); }
   document.getElementById('searchInput').value = code;
   renderPartList();
-  toast('New part added');
+  closeAddPartModal();
+  toast('✅ New part added');
 });
 
 /* ===================== Invoice view ===================== */
@@ -809,8 +1013,8 @@ function resetInvoiceForm(){
   document.getElementById('buyerGstin').value='';
   document.getElementById('buyerState').value='06';
   autoInvoiceNo = invoiceMode==='gst'
-    ? (settings.gstPrefix||'') + settings.gstNextNum
-    : (settings.prefix||'') + settings.nextNum;
+    ? resolvePrefix(settings.gstPrefix||'') + padSeq(settings.gstNextNum)
+    : resolvePrefix(settings.prefix||'') + padSeq(settings.nextNum);
   document.getElementById('invoiceNo').value = autoInvoiceNo;
   document.getElementById('invoiceDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('invoiceDiscount').value = '';
@@ -866,8 +1070,8 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     saveBtn.textContent = 'Reserving number…';
     try{
       const allocated = await nextInvoiceNumber(invoiceMode);
-      const prefix = invoiceMode==='gst' ? (settings.gstPrefix||'') : (settings.prefix||'');
-      finalInvoiceNo = prefix + allocated;
+      const prefix = invoiceMode==='gst' ? resolvePrefix(settings.gstPrefix||'') : resolvePrefix(settings.prefix||'');
+      finalInvoiceNo = prefix + padSeq(allocated);
       invoiceNoField.value = finalInvoiceNo;
       if(invoiceMode === 'gst') settings.gstNextNum = allocated + 1;
       else settings.nextNum = allocated + 1;
@@ -883,6 +1087,7 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
   const inv = {
     id: Date.now(),
     invoiceNo: finalInvoiceNo,
+    type: invoiceMode,
     date: document.getElementById('invoiceDate').value,
     buyer: {
       name: buyerName,
@@ -1156,21 +1361,62 @@ function shareInvoice(inv){
 
 /* ===================== History view ===================== */
 let historyFilter = 'normal';
+let historySearchQuery = '';
+
 function invoiceTypeOf(inv){
-  return (settings.gstPrefix && (inv.invoiceNo||'').indexOf(settings.gstPrefix) === 0) ? 'gst' : 'normal';
+  if(inv.type === 'gst' || inv.type === 'normal') return inv.type;
+  const gstRegex = prefixToRegex(settings.gstPrefix);
+  return (gstRegex && gstRegex.test(inv.invoiceNo||'')) ? 'gst' : 'normal';
 }
+
+function invoiceMatchesSearch(inv, q){
+  if(!q) return true;
+  const haystackParts = [inv.buyer.name, inv.buyer.mobile, inv.invoiceNo]
+    .concat((inv.items||[]).map(it=>it.desc));
+  return matchesQuery(haystackParts.join(' '), q);
+}
+
+let historySummaryYm = new Date().toISOString().slice(0,7);
+function formatYm(ym){
+  const [y,m] = ym.split('-').map(Number);
+  return MONTH_NAMES[m-1] + ' ' + y;
+}
+function shiftHistoryMonth(delta){
+  const [y,m] = historySummaryYm.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  historySummaryYm = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  renderHistory();
+}
+document.getElementById('histMonthPrev').addEventListener('click', ()=>shiftHistoryMonth(-1));
+document.getElementById('histMonthNext').addEventListener('click', ()=>shiftHistoryMonth(1));
+
+function renderHistorySummary(filtered){
+  const monthInvoices = filtered.filter(({inv}) => (inv.date||'').slice(0,7) === historySummaryYm);
+  const total = monthInvoices.reduce((s,{inv}) => s + (inv.totals.rounded||0), 0);
+  document.getElementById('histSummaryAmt').textContent = '₹' + fmt(total);
+  document.getElementById('histSummaryCount').textContent = monthInvoices.length + ' invoice' + (monthInvoices.length===1?'':'s');
+  document.getElementById('histSummaryLabel').textContent = formatYm(historySummaryYm);
+  const currentYm = new Date().toISOString().slice(0,7);
+  document.getElementById('histMonthNext').disabled = historySummaryYm >= currentYm;
+}
+
 function renderHistory(){
   const box = document.getElementById('historyList');
+  const q = historySearchQuery.trim();
+  const searching = q.length > 0;
   const filtered = [];
   invoices.forEach((inv, idx)=>{
-    if(invoiceTypeOf(inv)===historyFilter) filtered.push({inv, idx});
+    const typeOk = invoiceTypeOf(inv)===historyFilter;
+    const monthOk = searching || (inv.date||'').slice(0,7) === historySummaryYm;
+    if(typeOk && monthOk && invoiceMatchesSearch(inv, q)) filtered.push({inv, idx});
   });
+  renderHistorySummary(invoices.map((inv,idx)=>({inv,idx})));
   if(invoices.length===0){
     box.innerHTML = '<div class="empty"><div class="ic">🧾</div>No invoices saved yet.</div>';
     return;
   }
   if(filtered.length===0){
-    box.innerHTML = '<div class="empty"><div class="ic">🧾</div>No invoices in this category.</div>';
+    box.innerHTML = '<div class="empty"><div class="ic">🔍</div>'+(searching ? 'No invoices match your search.' : 'No invoices for '+formatYm(historySummaryYm)+'.')+'</div>';
     return;
   }
   box.innerHTML = '';
@@ -1181,7 +1427,7 @@ function renderHistory(){
     div.className = 'hist-row';
     div.innerHTML = `
       <div class="top"><span>${esc(inv.invoiceNo)}${badge}</span><span>${esc(inv.date)}</span></div>
-      <div class="sub">${esc(inv.buyer.name)}</div>
+      <div class="sub">${esc(inv.buyer.name)}${inv.buyer.mobile ? ' · '+esc(inv.buyer.mobile) : ''}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
         <button class="btn btn-outline" data-view="${idx}">👁 View</button>
@@ -1191,6 +1437,11 @@ function renderHistory(){
     box.appendChild(div);
   });
 }
+
+document.getElementById('historySearch').addEventListener('input', (e)=>{
+  historySearchQuery = e.target.value;
+  renderHistory();
+});
 
 document.getElementById('historyFilter').addEventListener('click', (e)=>{
   const btn = e.target.closest('[data-filter]');
@@ -1224,7 +1475,7 @@ function loadInvoiceForEdit(idx){
   const inv = invoices[idx];
   if(!inv) return;
   editingIndex = idx;
-  const looksLikeGst = settings.gstPrefix && (inv.invoiceNo||'').indexOf(settings.gstPrefix) === 0;
+  const looksLikeGst = invoiceTypeOf(inv) === 'gst';
   setInvoiceMode(looksLikeGst ? 'gst' : 'normal');
   document.getElementById('buyerName').value = inv.buyer.name || '';
   document.getElementById('buyerMobile').value = inv.buyer.mobile || '';
@@ -1371,6 +1622,7 @@ function initCloudSync(){
     firebase.auth().signInAnonymously().then(()=>{
       cloudDb = firebase.database();
       listenToCloud();
+      tryCloudGuardedFYReset();
     }).catch(err=>{
       console.warn('Anonymous sign-in failed, cloud sync disabled', err);
       setCloudStatus('offline');
