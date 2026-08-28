@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sant Sales & Service — Invoice</title>
-<meta name="theme-color" content="#12253F">
+<meta name="theme-color" content="#12142B">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -12,209 +12,219 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --navy:#12253F; --navy-light:#1B3355; --navy-pale:#EDF1F6;
-  --amber:#F0A93B; --amber-dark:#C8862A;
-  --bg:#F3F6FA; --surface:#FFFFFF; --border:#DEE5EC;
-  --text:#16233A; --text-dim:#5C6B7A;
-  --green:#1E8E5A; --red:#C23B3B;
-  --radius:14px;
-  --shadow-sm:0 1px 3px rgba(18,37,63,0.06), 0 1px 2px rgba(18,37,63,0.04);
-  --shadow-md:0 6px 18px rgba(18,37,63,0.10);
-  --ease:cubic-bezier(.4,0,.2,1);
+  --ink:#12142B; --ink-2:#22254A; --ink-soft:#3A3D66;
+  --paper:#F2F3F9; --surface:#FFFFFF; --surface-2:#F6F7FC;
+  --line:#E7E8F3; --line-strong:#D8DAEA;
+  --text:#181A33; --text-dim:#6D7089; --text-faint:#9A9CB3;
+  --accent:#E3A23D; --accent-deep:#B87A1E; --accent-soft:#FBF0DA;
+  --green:#1FA971; --green-soft:#E4F7EE;
+  --red:#E5493E; --red-soft:#FCEAE8;
+  --c-master:#C2760F; --c-master-soft:#FBF0DA;
+  --c-invoice:#5B4FE0; --c-invoice-soft:#ECEAFC;
+  --c-gst:#0E9488; --c-gst-soft:#DFF5F1;
+  --c-history:#D6486B; --c-history-soft:#FBE7EC;
+  --c-settings:#46507A; --c-settings-soft:#EAECF5;
+  --section:var(--c-master); --section-soft:var(--c-master-soft);
+  --radius-lg:20px; --radius-md:14px; --radius-sm:10px;
+  --shadow-xs:0 1px 2px rgba(18,20,50,.05);
+  --shadow-sm:0 2px 8px rgba(18,20,50,.06), 0 1px 2px rgba(18,20,50,.04);
+  --shadow-md:0 10px 28px -10px rgba(18,20,50,.22);
+  --shadow-lg:0 24px 48px -16px rgba(18,20,50,.34);
+  --ease:cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; height:100%;}
+html,body{margin:0; padding:0; background:var(--paper); color:var(--text); font-family:'Inter',system-ui,sans-serif; height:100%; -webkit-font-smoothing:antialiased;}
+body{
+  background:
+    radial-gradient(560px 420px at -8% -6%, rgba(91,79,224,.10), transparent 60%),
+    radial-gradient(520px 400px at 108% 4%, rgba(14,148,136,.09), transparent 60%),
+    radial-gradient(600px 460px at 50% 115%, rgba(227,162,61,.10), transparent 60%),
+    #F5F3FB;
+  background-attachment:fixed;
+}
 h1,h2,h3,.display{font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:0.01em;}
 .mono{font-family:'JetBrains Mono',monospace;}
 button{font-family:inherit; cursor:pointer;}
-input,select,textarea{font-family:inherit; font-size:15px; transition:border-color .18s var(--ease), box-shadow .18s var(--ease);}
-@keyframes fadeSlideIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+input,select,textarea{font-family:inherit; font-size:15px; transition:border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease);}
+@keyframes fadeSlideIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
 @keyframes popIn{from{opacity:0; transform:scale(.96);} to{opacity:1; transform:scale(1);}}
 @keyframes spin{to{transform:rotate(360deg);}}
 @keyframes pulseDot{0%,100%{opacity:1;} 50%{opacity:.35;}}
 
-#app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:var(--bg); position:relative;}
+#app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:var(--paper); position:relative;}
+#app[data-section="master"]{--section:var(--c-master); --section-soft:var(--c-master-soft);}
+#app[data-section="invoice"]{--section:var(--c-invoice); --section-soft:var(--c-invoice-soft);}
+#app[data-section="gst"]{--section:var(--c-gst); --section-soft:var(--c-gst-soft);}
+#app[data-section="history"]{--section:var(--c-history); --section-soft:var(--c-history-soft);}
+#app[data-section="settings"]{--section:var(--c-settings); --section-soft:var(--c-settings-soft);}
 
 /* Top bar */
-.topbar{background:linear-gradient(160deg,var(--navy),var(--navy-light)); color:#fff; padding:14px 16px 12px; position:sticky; top:0; z-index:20; box-shadow:var(--shadow-md);}
-.topbar .eyebrow{font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--amber); font-weight:600; display:flex; align-items:center; justify-content:space-between; gap:8px;}
-.topbar h1{margin:2px 0 0; font-size:24px; line-height:1;}
-.topbar .stripe{height:3px; background:linear-gradient(90deg,var(--amber),transparent); margin-top:10px; border-radius:2px;}
-.sync-badge{display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:0.03em; color:#C8DAF0; text-transform:none;}
-.sync-badge .dot{width:7px; height:7px; border-radius:50%; background:#6EE7A8; box-shadow:0 0 0 3px rgba(110,231,168,0.18);}
-.sync-badge.syncing .dot{background:var(--amber); animation:pulseDot 1s infinite;}
-.sync-badge.offline .dot{background:#F26B6B;}
+.topbar{background:linear-gradient(150deg,var(--ink),var(--ink-2) 60%,var(--section) 165%); color:#fff; padding:16px 18px 26px; position:sticky; top:0; z-index:20; border-radius:0 0 26px 26px; box-shadow:var(--shadow-md); transition:background .35s var(--ease);}
+.topbar .eyebrow{font-size:10.5px; text-transform:uppercase; letter-spacing:0.14em; color:rgba(255,255,255,.5); font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.topbar h1{margin:4px 0 0; font-size:25px; line-height:1.05; letter-spacing:0.005em;}
+.topbar .stripe{display:block; height:3px; width:38px; border-radius:3px; margin-top:12px; background:var(--section); box-shadow:0 0 0 3px rgba(255,255,255,.08); transition:background .35s var(--ease);}
+.sync-badge{display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,.85); text-transform:none; background:rgba(255,255,255,.08); padding:4px 10px 4px 8px; border-radius:20px; border:1px solid rgba(255,255,255,.12);}
+.sync-badge .dot{width:6px; height:6px; border-radius:50%; background:#5FE3A0; box-shadow:0 0 0 3px rgba(95,227,160,0.2);}
+.sync-badge.syncing .dot{background:var(--accent); animation:pulseDot 1s infinite;}
+.sync-badge.offline .dot{background:#FF6B60;}
 
 /* Views */
-.view{display:none; flex:1; padding:14px 14px 90px; overflow-y:auto;}
-.view.active{display:block; animation:fadeSlideIn .28s var(--ease);}
+.view{display:none; flex:1; padding:16px 14px 108px; overflow-y:auto; margin-top:-12px;}
+.view.active{display:block; animation:fadeSlideIn .32s var(--ease);}
 
-.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:12px; box-shadow:var(--shadow-sm); transition:box-shadow .2s var(--ease), transform .2s var(--ease);}
-.card h3{margin:0 0 10px; font-size:19px; color:var(--navy);}
+.card{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--section); border-radius:var(--radius-lg); padding:16px; margin-bottom:12px; box-shadow:var(--shadow-sm); transition:border-color .35s var(--ease);}
+.card h3{margin:0 0 13px; font-size:11.5px; font-family:'Inter',sans-serif; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:7px;}
+.card h3::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--section); flex-shrink:0;}
 
-.field{margin-bottom:10px;}
-.field label{display:block; font-size:12px; color:var(--text-dim); margin-bottom:4px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em;}
-.field input, .field select{width:100%; padding:9px 10px; border:1.5px solid var(--border); border-radius:7px; background:#fff; color:var(--text);}
-.field input:focus, .field select:focus{outline:none; border-color:var(--amber);}
+.field{margin-bottom:11px;}
+.field label{display:block; font-size:11px; color:var(--text-faint); margin-bottom:5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;}
+.field input, .field select{width:100%; padding:11px 12px; border:1.5px solid var(--line-strong); border-radius:var(--radius-sm); background:var(--surface-2); color:var(--text);}
+.field input:focus, .field select:focus{outline:none; background:#fff; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft);}
 .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 
-/* search */
-.searchbar{display:flex; gap:8px; margin-bottom:10px;}
-.searchbar input{flex:1; padding:11px 12px; border-radius:8px; border:1.5px solid var(--border); background:#fff;}
-.searchbar select{padding:11px 8px; border-radius:8px; border:1.5px solid var(--border); background:#fff; max-width:130px;}
-.hist-month-switcher{display:flex; align-items:center; justify-content:center; gap:10px;}
-.hist-month-switcher button{width:26px; height:26px; border-radius:50%; border:1.5px solid var(--border); background:var(--navy-pale); color:var(--navy); font-size:15px; font-weight:800; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0; transition:background .15s var(--ease), opacity .15s var(--ease), transform .12s var(--ease);}
-.hist-month-switcher button:active{transform:scale(0.88);}
-.hist-month-switcher button:disabled{opacity:.3; cursor:default;}
-.hist-month-switcher span{font-size:11px; color:var(--text-dim); font-weight:800; text-transform:uppercase; letter-spacing:0.06em; min-width:112px; text-align:center;}
+/* Compact Billing To / Items cards */
+.compact-card{padding:12px 13px;}
+.compact-card h3{margin-bottom:8px;}
+.compact-card .field{margin-bottom:7px;}
+.compact-card .field label{font-size:10px; margin-bottom:3px;}
+.compact-card .field input, .compact-card .field select{padding:8px 10px; font-size:14px;}
+.compact-card .row2{gap:8px;}
+.compact-card .item-card{padding:9px 10px; margin-bottom:7px;}
+.compact-card .item-grid{gap:6px; margin-top:6px;}
+.compact-card .item-line-total{margin-top:5px; font-size:12px;}
+.compact-card .item-line-total b{font-size:13px;}
 
-.result-count{font-size:12px; color:var(--text-dim); margin:2px 2px 8px;}
+/* search */
+.searchbar{display:flex; gap:8px; margin-bottom:12px;}
+.searchbar input{flex:1; min-width:0; padding:12px 14px; border-radius:var(--radius-md); border:1.5px solid var(--line); background:var(--surface); box-shadow:var(--shadow-xs); font-size:14px;}
+.searchbar input::placeholder{font-size:13.5px; color:var(--text-faint);}
+.searchbar input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft);}
+.searchbar select{padding:12px 8px; border-radius:var(--radius-md); border:1.5px solid var(--line); background:var(--surface); max-width:130px;}
+
+.result-count{font-size:11.5px; color:var(--text-faint); margin:2px 2px 10px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em;}
 
 /* price master list */
-.part-row{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:8px; box-shadow:var(--shadow-sm); transition:box-shadow .2s var(--ease), transform .15s var(--ease); animation:fadeSlideIn .25s var(--ease);}
+.part-row{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--line); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow-xs); transition:box-shadow .2s var(--ease), transform .15s var(--ease), border-color .2s var(--ease); animation:fadeSlideIn .25s var(--ease);}
 .part-row:active{transform:scale(0.99);}
+.part-row:has(.price-input.overridden){border-left-color:var(--accent);}
 .part-row .top{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
-.part-code{font-size:12px; color:var(--amber-dark); font-weight:700;}
-.part-cat{font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em;}
-.part-desc{font-size:14.5px; font-weight:600; margin:3px 0 8px; color:var(--text);}
+.part-code{font-size:11.5px; color:var(--accent-deep); font-weight:700; letter-spacing:0.01em;}
+.part-cat{font-size:9.5px; text-transform:uppercase; letter-spacing:0.04em; font-weight:800; padding:3px 9px; border-radius:20px; white-space:nowrap;}
+.part-desc{font-size:14.5px; font-weight:600; margin:4px 0 10px; color:var(--text); line-height:1.3;}
 .part-prices{display:flex; align-items:center; gap:10px; font-size:13px;}
-.part-prices .lbl{color:var(--text-dim); font-size:11px;}
-.price-input{width:80px; padding:6px 7px; border:1.5px solid var(--border); border-radius:6px; text-align:right;}
-.price-input.overridden{border-color:var(--amber); background:#FFF8EC;}
-.revert-btn{background:none; border:none; color:var(--text-dim); font-size:16px; padding:2px 4px;}
-.landing-note{font-size:11px; color:var(--text-dim); margin-left:auto;}
+.part-prices .lbl{color:var(--text-faint); font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em;}
+.price-input{width:80px; padding:7px 8px; border:1.5px solid var(--line); border-radius:8px; text-align:right; background:var(--surface-2);}
+.price-input.overridden{border-color:var(--accent); background:var(--accent-soft); font-weight:700;}
+.revert-btn{background:none; border:none; color:var(--text-faint); font-size:16px; padding:2px 4px;}
+.landing-note{font-size:11px; color:var(--text-faint); margin-left:auto;}
 
-.loadmore{width:100%; padding:11px; border:1.5px dashed var(--border); background:transparent; border-radius:9px; color:var(--navy); font-weight:600;}
+.loadmore{width:100%; padding:12px; border:1.5px dashed var(--line-strong); background:transparent; border-radius:var(--radius-md); color:var(--ink); font-weight:700; font-size:13.5px;}
 
 /* buttons */
-.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:11px 16px; border-radius:9px; border:none; font-weight:700; font-size:14.5px; transition:transform .12s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease), opacity .18s var(--ease);}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:12px 16px; border-radius:var(--radius-sm); border:none; font-weight:700; font-size:14.5px; transition:transform .12s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease), opacity .18s var(--ease);}
 .btn:active{transform:scale(0.96);}
-.btn-primary{background:var(--navy); color:#fff; box-shadow:0 3px 10px rgba(18,37,63,0.25);}
-.btn-primary:hover{background:var(--navy-light);}
-.btn-amber{background:var(--amber); color:#2B1B00; box-shadow:0 3px 10px rgba(240,169,59,0.3);}
-.btn-outline{background:transparent; border:1.5px solid var(--border); color:var(--navy);}
-.btn-outline:hover{border-color:var(--navy); background:var(--navy-pale);}
-.btn-danger{background:transparent; border:1.5px solid var(--red); color:var(--red);}
-.btn-danger:hover{background:rgba(194,59,59,0.08);}
+.btn-primary{background:linear-gradient(135deg,var(--ink),var(--ink-2) 55%,var(--section) 160%); color:#fff; box-shadow:0 4px 14px rgba(18,20,43,0.28);}
+.btn-amber{background:var(--accent); color:#2B1B00; box-shadow:0 4px 14px rgba(227,162,61,0.32);}
+.btn-outline{background:var(--surface-2); border:1.5px solid var(--line); color:var(--ink);}
+.btn-outline:hover{border-color:var(--ink-soft); background:#fff;}
+.btn-danger{background:var(--red-soft); border:1.5px solid transparent; color:var(--red);}
+.btn-danger:hover{background:#FBDBD8;}
 .btn-block{width:100%;}
 .btn-row{display:flex; gap:8px;}
-.btn[disabled]{opacity:.55; pointer-events:none;}
+.btn[disabled]{opacity:.5; pointer-events:none;}
 
 /* invoice items */
-.item-card{border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:8px; position:relative; background:#FBFCFD; animation:fadeSlideIn .22s var(--ease); box-shadow:var(--shadow-sm);}
-.item-card .idx{position:absolute; top:-9px; left:10px; background:var(--navy); color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;}
+.item-card{border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; margin-bottom:9px; position:relative; background:var(--surface-2); animation:fadeSlideIn .22s var(--ease); box-shadow:var(--shadow-xs);}
+.item-card .idx{position:absolute; top:-9px; left:10px; background:var(--ink); color:#fff; font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px;}
 .item-card .remove{position:absolute; top:2px; right:2px; background:none; border:none; color:var(--red); font-size:20px; line-height:1; width:38px; height:38px; display:flex; align-items:center; justify-content:center; z-index:5; cursor:pointer; touch-action:manipulation;}
 .autocomplete{position:relative;}
-.ac-list{position:absolute; z-index:30; left:0; right:0; top:100%; background:#fff; border:1.5px solid var(--border); border-radius:8px; max-height:220px; overflow-y:auto; box-shadow:0 8px 24px rgba(18,37,63,0.18); margin-top:3px;}
-.ac-item{padding:9px 10px; border-bottom:1px solid var(--border); font-size:13.5px;}
+.ac-list{position:absolute; z-index:30; left:0; right:0; top:100%; background:#fff; border:1.5px solid var(--line); border-radius:var(--radius-sm); max-height:220px; overflow-y:auto; box-shadow:var(--shadow-lg); margin-top:4px;}
+.ac-item{padding:10px 11px; border-bottom:1px solid var(--line); font-size:13.5px;}
 .ac-item:last-child{border-bottom:none;}
-.ac-item .c{font-size:11px; color:var(--amber-dark); font-weight:700;}
-.item-grid{display:grid; grid-template-columns:1fr 70px 90px; gap:8px; margin-top:8px;}
-.item-grid label{font-size:10px; color:var(--text-dim); text-transform:uppercase;}
-.item-line-total{text-align:right; font-size:13px; color:var(--text-dim); margin-top:6px;}
+.ac-item .c{font-size:11px; color:var(--accent-deep); font-weight:700;}
+.item-grid{display:grid; grid-template-columns:1fr 70px 90px; gap:8px; margin-top:9px;}
+.item-grid label{font-size:10px; color:var(--text-faint); text-transform:uppercase; font-weight:700; letter-spacing:0.03em;}
+.item-line-total{text-align:right; font-size:12.5px; color:var(--text-dim); margin-top:7px;}
 .item-line-total b{color:var(--text); font-size:14.5px;}
 
 /* totals */
-.totals{border-top:2px solid var(--navy); margin-top:10px; padding-top:10px;}
-.totals .r{display:flex; justify-content:space-between; font-size:14px; padding:3px 0;}
-.totals .grand{font-size:20px; font-weight:700; color:var(--navy); border-top:1px dashed var(--border); margin-top:6px; padding-top:8px;}
+.totals{border-top:1.5px solid var(--line); margin-top:12px; padding-top:12px;}
+.totals .r{display:flex; justify-content:space-between; font-size:13.5px; padding:3.5px 0; color:var(--text-dim);}
+.totals .grand{font-size:21px; font-weight:800; color:var(--ink); border-top:1.5px dashed var(--line-strong); margin-top:8px; padding-top:10px; font-family:'Barlow Condensed',sans-serif;}
 
-/* bottom nav */
-.tabbar{position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:520px; background:var(--navy); display:flex; z-index:40; padding:6px 4px calc(6px + env(safe-area-inset-bottom)); box-shadow:0 -4px 16px rgba(0,0,0,0.15);}
-.tab{flex:1; background:none; border:none; color:#9FB1C7; padding:8px 2px 6px; font-size:10px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:3px; border-radius:8px; transition:color .18s var(--ease), transform .12s var(--ease);}
+/* bottom nav — floating pill */
+.tabbar{position:fixed; bottom:calc(10px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:calc(100% - 20px); max-width:500px; background:rgba(255,255,255,0.94); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); display:flex; z-index:40; padding:5px; border-radius:20px; box-shadow:var(--shadow-lg); border:1px solid rgba(255,255,255,.6); gap:2px;}
+.tab{flex:1; background:none; border:none; color:var(--text-faint); padding:8px 2px 7px; font-size:10px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:3px; border-radius:15px; transition:color .18s var(--ease), transform .12s var(--ease), background .2s var(--ease);}
 .tab .ic{font-size:17px; transition:transform .18s var(--ease);}
-.tab.active{color:var(--amber);}
-.tab.active .ic{transform:translateY(-2px) scale(1.08);}
+.tab.active{color:var(--ink); background:var(--accent-soft);}
+.tab[data-tabcolor="master"].active{color:var(--c-master); background:var(--c-master-soft);}
+.tab[data-tabcolor="invoice"].active{color:var(--c-invoice); background:var(--c-invoice-soft);}
+.tab[data-tabcolor="gst"].active{color:var(--c-gst); background:var(--c-gst-soft);}
+.tab[data-tabcolor="history"].active{color:var(--c-history); background:var(--c-history-soft);}
+.tab[data-tabcolor="settings"].active{color:var(--c-settings); background:var(--c-settings-soft);}
+.tab.active .ic{transform:translateY(-1px) scale(1.06);}
 .tab:active{transform:scale(0.93);}
 
-.empty{text-align:center; padding:40px 20px; color:var(--text-dim);}
-.empty .ic{font-size:38px; margin-bottom:8px;}
+.empty{text-align:center; padding:48px 20px; color:var(--text-faint);}
+.empty .ic{font-size:36px; margin-bottom:10px; opacity:.6;}
 
-.badge{display:inline-block; background:var(--amber); color:#2B1B00; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;}
+.badge{display:inline-block; background:var(--accent); color:#2B1B00; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;}
 
-/* invoice preview / print */
-.paper{background:#fff; border:1px solid var(--border); border-radius:6px; padding:16px; font-size:12.5px;}
-.paper .ph{display:flex; align-items:center; justify-content:space-between; gap:8px; text-align:center; font-family:'Barlow Condensed'; font-weight:700; font-size:15px; letter-spacing:0.08em; border-bottom:2px solid var(--navy); padding-bottom:8px; margin-bottom:8px;}
+/* invoice preview / print — kept traditional/print-appropriate */
+.paper{background:#fff; border:1px solid var(--line); border-radius:6px; padding:16px; font-size:12.5px;}
+.paper .ph{display:flex; align-items:center; justify-content:space-between; gap:8px; text-align:center; font-family:'Barlow Condensed'; font-weight:700; font-size:15px; letter-spacing:0.08em; border-bottom:2px solid var(--ink); padding-bottom:8px; margin-bottom:8px;}
 .paper .ph .ph-title{flex:1; text-align:center;}
 .paper .ph-logo{height:30px; max-width:92px; object-fit:contain; flex-shrink:0;}
 .paper table{width:100%; border-collapse:collapse; margin:8px 0; font-size:11.5px;}
 .paper th, .paper td{border:1px solid #999; padding:4px 5px; text-align:left;}
-.paper th{background:var(--navy-pale);}
+.paper th{background:var(--surface-2);}
 .paper .num{text-align:right;}
 .paper .totalrow td{font-weight:700;}
 .paper{position:relative; overflow:hidden;}
 .paper-watermark{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-28deg); font-size:34px; font-weight:800; color:rgba(200,134,42,0.16); letter-spacing:3px; white-space:nowrap; z-index:0; pointer-events:none; font-family:'Barlow Condensed',sans-serif; text-transform:uppercase;}
 .paper-content{position:relative; z-index:1;}
 
-.toast{position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 18px; border-radius:30px; font-size:13.5px; font-weight:600; z-index:60; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
+.toast{position:fixed; bottom:96px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 20px; border-radius:30px; font-size:13.5px; font-weight:600; z-index:60; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; box-shadow:var(--shadow-md);}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
 
-.hist-filter{display:flex; gap:6px; margin-bottom:10px;}
-.hist-filter-btn{flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text-dim); padding:8px 4px; font-size:12px; font-weight:600; border-radius:8px;}
-.hist-filter-btn.active{background:var(--navy); color:#fff; border-color:var(--navy);}
-.hist-badge{display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:0.02em; margin-left:6px; vertical-align:middle;}
-.hist-badge.gst{background:rgba(200,134,42,0.15); color:#C8862A;}
-.hist-badge.normal{background:rgba(18,37,63,0.1); color:var(--navy);}
-.hist-row{background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:12px; margin-bottom:8px;}
-.hist-row .top{display:flex; justify-content:space-between; font-weight:700; color:var(--navy);}
-.hist-row .sub{font-size:12px; color:var(--text-dim); margin-top:2px;}
-.hist-row .amt{font-size:17px; font-weight:700; margin-top:6px;}
-.hist-actions{display:flex; gap:6px; margin-top:8px;}
-.hist-actions button{flex:1; padding:7px; font-size:12.5px; border-radius:6px;}
+.hist-filter{display:flex; gap:4px; margin-bottom:12px; background:var(--surface-2); padding:4px; border-radius:var(--radius-md); border:1px solid var(--line);}
+.hist-filter-btn{flex:1; background:none; border:none; color:var(--text-dim); padding:9px 4px; font-size:12.5px; font-weight:700; border-radius:10px; transition:background .18s var(--ease), color .18s var(--ease), box-shadow .18s var(--ease);}
+.hist-filter-btn.active{background:var(--surface); color:var(--ink); box-shadow:var(--shadow-xs);}
+.hist-badge{display:inline-block; font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:20px; letter-spacing:0.03em; margin-left:6px; vertical-align:middle; text-transform:uppercase;}
+.hist-badge.gst{background:var(--c-gst-soft); color:var(--c-gst);}
+.hist-month-switcher{display:flex; align-items:center; justify-content:center; gap:10px;}
+.hist-month-switcher button{width:26px; height:26px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface-2); color:var(--section); font-size:15px; font-weight:800; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0; transition:background .15s var(--ease), opacity .15s var(--ease), transform .12s var(--ease);}
+.hist-month-switcher button:active{transform:scale(0.88);}
+.hist-month-switcher button:disabled{opacity:.3; cursor:default;}
+.hist-month-switcher span{font-size:11px; color:var(--text-dim); font-weight:800; text-transform:uppercase; letter-spacing:0.06em; min-width:112px; text-align:center;}
+.hist-badge.normal{background:var(--surface-2); color:var(--text-dim); border:1px solid var(--line);}
+.hist-row{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:13px 14px; margin-bottom:9px; box-shadow:var(--shadow-xs);}
+.hist-row .top{display:flex; justify-content:space-between; font-weight:700; color:var(--ink); font-size:14px;}
+.hist-row .sub{font-size:12.5px; color:var(--text-dim); margin-top:3px; font-weight:500;}
+.hist-row .amt{font-size:18px; font-weight:800; margin-top:8px; color:var(--ink); font-family:'Barlow Condensed',sans-serif;}
+.hist-actions{display:flex; gap:6px; margin-top:10px;}
+.hist-actions button{flex:1; padding:8px; font-size:12.5px; border-radius:9px;}
 
 /* review / recheck modal */
-.review-overlay{display:none; position:fixed; inset:0; background:rgba(18,37,63,0.55); z-index:80; align-items:flex-end; justify-content:center;}
-.review-card{background:#fff; width:100%; max-width:520px; max-height:82vh; overflow-y:auto; border-radius:16px 16px 0 0; padding:18px 16px calc(18px + env(safe-area-inset-bottom));}
-.review-card h3{margin:0 0 2px; color:var(--navy);}
+.review-overlay{display:none; position:fixed; inset:0; background:rgba(18,20,43,0.6); backdrop-filter:blur(2px); z-index:80; align-items:flex-end; justify-content:center;}
+.review-card{background:#fff; width:100%; max-width:520px; max-height:82vh; overflow-y:auto; border-radius:22px 22px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); box-shadow:var(--shadow-lg);}
+.review-card h3{margin:0 0 2px; color:var(--ink); font-size:20px;}
 .review-list{max-height:45vh; overflow-y:auto;}
-.review-row{border-bottom:1px solid var(--border); padding:9px 0;}
+.review-row{border-bottom:1px solid var(--line); padding:10px 0;}
 .review-desc{font-size:13.5px; font-weight:600; color:var(--text);}
-.review-calc{font-size:13px; color:var(--text-dim); margin-top:3px;}
-.review-rate{background:#FFF3D6; color:var(--amber-dark); font-weight:700; padding:1px 6px; border-radius:5px;}
-.review-grand{display:flex; justify-content:space-between; font-size:17px; font-weight:700; color:var(--navy); border-top:2px solid var(--navy); margin-top:10px; padding-top:10px;}
+.review-calc{font-size:12.5px; color:var(--text-dim); margin-top:3px;}
+.review-rate{background:var(--accent-soft); color:var(--accent-deep); font-weight:700; padding:1px 7px; border-radius:6px;}
+.review-grand{display:flex; justify-content:space-between; font-size:17px; font-weight:800; color:var(--ink); border-top:1.5px solid var(--line-strong); margin-top:12px; padding-top:12px;}
 
 /* PDF in-app preview */
 .pdfview-overlay{display:none; position:fixed; inset:0; background:#fff; z-index:90; flex-direction:column;}
-.pdfview-header{display:flex; align-items:center; justify-content:space-between; background:var(--navy); color:#fff; padding:12px 14px; font-weight:700; font-size:15px;}
-.btn-pdfview{background:var(--amber); color:#2B1B00; border:none; padding:8px 14px; font-size:13px; font-weight:700; border-radius:7px;}
-.pdfview-frame{flex:1; width:100%; overflow-y:auto; background:var(--bg); padding:14px;}
-
-/* PIN lock screen */
-.lock-overlay{position:fixed; inset:0; background:linear-gradient(160deg,var(--navy),var(--navy-light)); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px;}
-.lock-overlay .lock-icon{font-size:40px; margin-bottom:6px;}
-.lock-overlay h2{color:#fff; margin:0 0 4px; font-size:22px;}
-.lock-overlay p{color:#C8DAF0; font-size:13px; margin:0 0 22px; text-align:center;}
-.pin-dots{display:flex; gap:14px; margin-bottom:22px;}
-.pin-dots .pd{width:16px; height:16px; border-radius:50%; border:2px solid var(--amber); transition:background .15s var(--ease), transform .15s var(--ease);}
-.pin-dots .pd.filled{background:var(--amber); transform:scale(1.1);}
-.pin-pad{display:grid; grid-template-columns:repeat(3,64px); gap:14px;}
-.pin-pad button{width:64px; height:64px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.06); color:#fff; font-size:22px; font-weight:700; transition:background .15s var(--ease), transform .12s var(--ease);}
-.pin-pad button:active{transform:scale(0.92); background:rgba(240,169,59,0.35);}
-.pin-pad button.pp-clear, .pin-pad button.pp-back{font-size:14px; font-weight:600;}
-.lock-error{color:#F9A0A0; font-size:13px; height:18px; margin-top:12px; animation:fadeSlideIn .2s var(--ease);}
-.lock-shake{animation:shakeX .35s;}
-@keyframes shakeX{0%,100%{transform:translateX(0);} 20%{transform:translateX(-8px);} 40%{transform:translateX(8px);} 60%{transform:translateX(-6px);} 80%{transform:translateX(6px);}}
+.pdfview-header{display:flex; align-items:center; justify-content:space-between; background:var(--ink); color:#fff; padding:13px 15px; font-weight:700; font-size:15px;}
+.btn-pdfview{background:var(--accent); color:#2B1B00; border:none; padding:9px 15px; font-size:13px; font-weight:700; border-radius:10px;}
+.pdfview-frame{flex:1; width:100%; overflow-y:auto; background:var(--paper); padding:14px;}
 </style>
 </head>
 <body>
-
-<div class="lock-overlay" id="lockOverlay">
-  <div class="lock-icon">🔒</div>
-  <h2>Sant Sales &amp; Service</h2>
-  <p>Enter 4-digit code to open</p>
-  <div class="pin-dots" id="pinDots">
-    <span class="pd"></span><span class="pd"></span><span class="pd"></span><span class="pd"></span>
-  </div>
-  <div class="pin-pad" id="pinPad">
-    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
-    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
-    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
-    <button class="pp-clear" data-k="clear">Clear</button><button data-k="0">0</button><button class="pp-back" data-k="back">⌫</button>
-  </div>
-  <div class="lock-error" id="lockError"></div>
-</div>
-
-<div id="app">
+<div id="app" data-section="master">
 
   <div class="topbar">
     <div class="eyebrow">
@@ -228,7 +238,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
   <!-- PRICE MASTER -->
   <div class="view active" id="view-master">
     <div class="searchbar">
-      <input type="text" id="searchInput" placeholder="Search part code or description…">
+      <input type="text" id="searchInput" placeholder="Search parts…">
       <select id="categoryFilter"><option value="">All Categories</option></select>
     </div>
     <div class="result-count" id="resultCount"></div>
@@ -239,8 +249,9 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 
   <!-- NEW INVOICE -->
   <div class="view" id="view-invoice">
-    <div class="card">
+    <div class="card compact-card" id="billingToCard">
       <h3>Billing To</h3>
+      <button type="button" class="btn btn-outline" id="fillVenusBtn" style="display:none; margin-bottom:8px; font-size:12.5px; padding:7px 11px;">📑 Fill Venus Details</button>
       <div class="field"><label>Customer / Company Name</label><input id="buyerName" placeholder="e.g. Venus Home Appliances Pvt. Ltd."></div>
       <div class="field"><label>Mobile Number</label><input id="buyerMobile" type="tel" placeholder="e.g. 9876543210" maxlength="15"></div>
       <div class="field"><label>Address</label><input id="buyerAddress" placeholder="Address"></div>
@@ -254,7 +265,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
       </div>
     </div>
 
-    <div class="card">
+    <div class="card compact-card" id="itemsCard">
       <h3>Items</h3>
       <div id="itemsContainer"></div>
       <button class="btn btn-outline btn-block" id="addItemBtn">+ Add Item</button>
@@ -294,7 +305,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
         <button type="button" id="histMonthNext" aria-label="Next month">›</button>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:4px;">
-        <div style="font-size:22px; font-weight:800; color:var(--navy); font-family:'Barlow Condensed',sans-serif;" id="histSummaryAmt">₹0</div>
+        <div style="font-size:22px; font-weight:800; color:var(--ink); font-family:'Barlow Condensed',sans-serif;" id="histSummaryAmt">₹0</div>
         <div style="font-size:12.5px; color:var(--text-dim); font-weight:600;" id="histSummaryCount">0 invoices</div>
       </div>
     </div>
@@ -302,7 +313,8 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
       <input type="text" id="historySearch" placeholder="Search name, mobile, or item…">
     </div>
     <div class="hist-filter" id="historyFilter">
-      <button class="hist-filter-btn active" data-filter="normal">Invoice</button>
+      <button class="hist-filter-btn active" data-filter="all">All</button>
+      <button class="hist-filter-btn" data-filter="normal">Invoice</button>
       <button class="hist-filter-btn" data-filter="gst">GST Invoice</button>
     </div>
     <div id="historyList"></div>
@@ -327,21 +339,20 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
         <div class="field"><label>GST Rate (%)</label><input id="setGstRate" type="number"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>Invoice Prefix</label><input id="setPrefix" placeholder="SSS/MM/TM/"></div>
+        <div class="field"><label>Invoice Prefix</label><input id="setPrefix" placeholder="SSS/07/TM/"></div>
         <div class="field"><label>Next Invoice No.</label><input id="setNextNum" type="number"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>GST Invoice Prefix</label><input id="setGstPrefix" placeholder="VNS/MM/"></div>
+        <div class="field"><label>GST Invoice Prefix</label><input id="setGstPrefix" placeholder="VNS/07/26-27/"></div>
         <div class="field"><label>GST Invoice Next No.</label><input id="setGstNextNum" type="number"></div>
       </div>
-      <p style="font-size:12px; color:var(--text-dim); margin:-4px 0 0;">Write <b>MM</b> where the month should go (e.g. SSS/MM/TM/) — it auto-switches every 1st of the month (08 for Aug, 09 for Sep...). On 1 April 2027, the prefix will automatically switch to the new format (SS/MM/26-27/01 for Invoice, SSS/MM/26-27/01 for GST) and bill numbers will reset to 1 — this happens once, automatically, and nothing changes before then.</p>
       <button class="btn btn-primary btn-block" id="saveSettingsBtn">Save Settings</button>
     </div>
 
     <div class="card">
       <h3>Authorised Signature</h3>
       <p style="font-size:13px; color:var(--text-dim); margin-top:0;">Upload your signature photo — it will automatically appear at the bottom of every invoice.</p>
-      <div id="signaturePreviewBox" style="display:none; margin-bottom:10px; text-align:center; border:1.5px dashed var(--border); border-radius:8px; padding:10px;">
+      <div id="signaturePreviewBox" style="display:none; margin-bottom:10px; text-align:center; border:1.5px dashed var(--line); border-radius:8px; padding:10px;">
         <img id="signaturePreviewImg" style="max-height:70px; max-width:100%;">
       </div>
       <div class="btn-row">
@@ -354,17 +365,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
     <div class="card">
       <h3>Cloud Backup</h3>
       <p style="font-size:13px; color:var(--text-dim); margin-top:0;">Your data automatically syncs to the cloud, so it's safe even if you clear your browser or switch phones.</p>
-      <div id="cloudStatus" style="font-size:13px; font-weight:600; color:var(--navy);">☁️ Connecting…</div>
-    </div>
-
-    <div class="card">
-      <h3>App Lock</h3>
-      <p style="font-size:13px; color:var(--text-dim); margin-top:0;">4-digit code required every time the app is opened.</p>
-      <div class="row2">
-        <div class="field"><label>New 4-digit Code</label><input id="setAppPin" maxlength="4" inputmode="numeric" placeholder="e.g. 1234"></div>
-        <div class="field"><label>Confirm Code</label><input id="setAppPinConfirm" maxlength="4" inputmode="numeric" placeholder="Repeat code"></div>
-      </div>
-      <button class="btn btn-outline btn-block" id="saveAppPinBtn">Update App Lock Code</button>
+      <div id="cloudStatus" style="font-size:13px; font-weight:600; color:var(--ink);">☁️ Connecting…</div>
     </div>
 
     <div class="card">
@@ -379,11 +380,11 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
   </div>
 
   <div class="tabbar">
-    <button class="tab active" data-view="master"><span class="ic">🔧</span>Price Master</button>
-    <button class="tab" id="newInvoiceBtn" data-view="invoice"><span class="ic">🧾</span>Invoice</button>
-    <button class="tab" id="venusBillBtn" data-view="invoice"><span class="ic">📑</span>GST Invoice</button>
-    <button class="tab" data-view="history"><span class="ic">📋</span>History</button>
-    <button class="tab" data-view="settings"><span class="ic">⚙️</span>Settings</button>
+    <button class="tab active" data-view="master" data-tabcolor="master"><span class="ic">🔧</span>Price Master</button>
+    <button class="tab" id="newInvoiceBtn" data-view="invoice" data-tabcolor="invoice"><span class="ic">🧾</span>Invoice</button>
+    <button class="tab" id="venusBillBtn" data-view="invoice" data-tabcolor="gst"><span class="ic">📑</span>GST Invoice</button>
+    <button class="tab" data-view="history" data-tabcolor="history"><span class="ic">📋</span>History</button>
+    <button class="tab" data-view="settings" data-tabcolor="settings"><span class="ic">⚙️</span>Settings</button>
   </div>
 </div>
 
@@ -441,26 +442,6 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 <script>
 /* ===================== Storage helpers ===================== */
 const CLOUD_KEYS = ['sss_settings','sss_price_overrides','sss_custom_parts','sss_invoices'];
-
-// Declared here (near the very top) on purpose: settings/migration code
-// below can trigger a save (LS.set -> pushToCloud) during the very first
-// synchronous pass through this script, before the Firebase section (much
-// further down) would normally run. If these weren't declared yet at that
-// point, referencing them would throw and silently abort the rest of the
-// script — including the PIN-lock keypad wiring at the bottom, which is
-// exactly the "PIN does nothing on first try" bug this fixes.
-let cloudDb = null;
-let cloudSyncTimer = null;
-let cloudSyncing = false;
-let lastCloudUpdatedAt = null;
-let firstLoadDone = false;
-let toastTimer;
-const DEVICE_ID = (function(){
-  let id = localStorage.getItem('sss_device_id');
-  if(!id){ id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); localStorage.setItem('sss_device_id', id); }
-  return id;
-})();
-
 const LS = {
   get(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
   set(key, val){
@@ -480,13 +461,10 @@ const DEFAULT_SETTINGS = {
   stateCode: '06',
   pan: 'AWEPR6592C',
   gstRate: 18,
-  prefix: 'SSS/MM/TM/',
+  prefix: 'SSS/07/TM/',
   nextNum: 31,
-  gstPrefix: 'VNS/MM/',
+  gstPrefix: 'VNS/07/',
   gstNextNum: 1,
-  appPin: '1234',
-  lastKnownFY: null,
-  prefixFormatV2Applied: false,
   signatureImage: DEFAULT_SIGNATURE
 };
 
@@ -495,147 +473,9 @@ function getSignature(){
 }
 
 let settings = LS.get('sss_settings', DEFAULT_SETTINGS);
-
-/* ---- Monthly & yearly-rolling invoice prefix ----
-   "MM" in a prefix always resolves to the CURRENT month (08 in August, 09
-   in September, ...) and "FY" resolves to the current GST financial year
-   (e.g. "26-27"), so a prefix like "SSS/FY/MM/TM/" needs zero manual
-   editing all year round. */
-function currentMonthMM(){
-  return String(new Date().getMonth() + 1).padStart(2, '0');
-}
-function padSeq(n){
-  return String(n).padStart(2, '0');
-}
-function currentFY(){
-  const now = new Date();
-  const y = now.getFullYear();
-  const startYear = (now.getMonth() + 1 >= 4) ? y : y - 1; // FY starts 1 April
-  const last2 = n => String(n % 100).padStart(2, '0');
-  return last2(startYear) + '-' + last2(startYear + 1);
-}
-function resolvePrefix(template){
-  return (template || '').replace(/MM/g, currentMonthMM()).replace(/FY/g, currentFY());
-}
-function prefixToRegex(template){
-  if(!template) return null;
-  const escaped = template.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = escaped.replace(/MM/g, '\\d{2}').replace(/FY/g, '\\d{2}-\\d{2}');
-  return new RegExp('^' + pattern);
-}
-// One-time migration: older saved prefixes had the month baked in as plain
-// digits (e.g. "SSS/07/TM/"). Convert the 2-digit segment to "MM" so it
-// starts auto-rolling from now on, without losing the rest of the format.
-function migratePrefixToMonthly(str){
-  if(!str || str.indexOf('MM') !== -1) return str;
-  const parts = str.split('/');
-  let replaced = false;
-  for(let i = 0; i < parts.length; i++){
-    if(!replaced && /^\d{2}$/.test(parts[i])){ parts[i] = 'MM'; replaced = true; }
-  }
-  return replaced ? parts.join('/') : str;
-}
-// One-time migration: older prefixes had no financial-year segment at all.
-// Insert an "FY" token right after the company code so it starts
-// auto-rolling every 1st April, without you needing to retype anything.
-function migrateAddFY(str){
-  if(!str || str.indexOf('FY') !== -1) return str;
-  const parts = str.split('/');
-  parts.splice(1, 0, 'FY');
-  return parts.join('/');
-}
 let overrides = LS.get('sss_price_overrides', {});     // {code: {fbasic, cbasic}}
 let customParts = LS.get('sss_custom_parts', []);       // [[code,hsn,cat,desc,fbasic,cbasic], ...]
 let invoices = LS.get('sss_invoices', []);
-
-// One-time backfill: older saved invoices don't carry an explicit "type"
-// field — they were told apart from their invoiceNo prefix. Freeze that
-// classification onto each invoice NOW, using the prefix pattern as it
-// stood at the START of this session — BEFORE the migrations below change
-// it — so old bills never get misclassified after any format switch.
-(function backfillInvoiceTypes(){
-  let changed = false;
-  const gstRegexNow = prefixToRegex(settings.gstPrefix);
-  invoices.forEach(inv=>{
-    if(inv.type !== 'gst' && inv.type !== 'normal'){
-      inv.type = (gstRegexNow && gstRegexNow.test(inv.invoiceNo||'')) ? 'gst' : 'normal';
-      changed = true;
-    }
-  });
-  if(changed) LS.set('sss_invoices', invoices);
-})();
-
-(function migrateSettingsPrefixes(){
-  let changed = false;
-  let p = migratePrefixToMonthly(settings.prefix);
-  let g = migratePrefixToMonthly(settings.gstPrefix);
-  if(p !== settings.prefix){ settings.prefix = p; changed = true; }
-  if(g !== settings.gstPrefix){ settings.gstPrefix = g; changed = true; }
-  if(changed) LS.set('sss_settings', settings);
-})();
-
-/* ---- One-time scheduled prefix format upgrade ----
-   From 1 April 2027 (the next financial-year start), both invoice series
-   permanently switch to this fixed format — no more "VNS", and both
-   series share the same MM/FY/number structure:
-     Normal Invoice : SS/MM/FY/01
-     GST Invoice    : SSS/MM/FY/01
-   This runs exactly once (guarded by settings.prefixFormatV2Applied) and
-   never changes the prefix again after that. */
-(function scheduledPrefixFormatUpgrade(){
-  const upgradeDate = new Date(2027, 3, 1); // 1 April 2027
-  if(!settings.prefixFormatV2Applied && new Date() >= upgradeDate){
-    settings.prefix = 'SS/MM/FY/';
-    settings.gstPrefix = 'SSS/MM/FY/';
-    settings.prefixFormatV2Applied = true;
-    LS.set('sss_settings', settings);
-  }
-})();
-
-/* ---- Financial-year rollover: auto-reset bill numbers to 1 on 1 April ----
-   Guarded by a Firebase transaction so that if several devices open the
-   app around the FY change, only ONE of them actually performs the reset
-   — the others just adopt the result. This prevents two phones from both
-   resetting to 1 and re-issuing the same invoice number twice. */
-// First-ever run under this app version: settings.lastKnownFY was never
-// tracked before, so it starts as null. That is NOT a real financial-year
-// rollover — just establish the baseline quietly, without touching bill
-// numbers. Only a later run where lastKnownFY was already set to a real
-// FY string, and now differs, means an actual 1 April rollover happened.
-if(settings.lastKnownFY === null || settings.lastKnownFY === undefined){
-  settings.lastKnownFY = currentFY();
-  LS.set('sss_settings', settings);
-}
-let pendingFYReset = (settings.lastKnownFY !== currentFY());
-function applyLocalFYReset(){
-  settings.lastKnownFY = currentFY();
-  settings.nextNum = 1;
-  settings.gstNextNum = 1;
-  LS.set('sss_settings', settings);
-  toast('📅 New financial year (' + currentFY() + ') — bill numbers reset to 1');
-}
-function tryCloudGuardedFYReset(){
-  if(!cloudDb || !pendingFYReset) return;
-  const newFY = currentFY();
-  cloudDb.ref('counters/fyLabel').transaction(current=>{
-    if(current === newFY) return; // someone already reset for this FY — abort, do nothing
-    return newFY;
-  }).then(result=>{
-    pendingFYReset = false;
-    if(result.committed){
-      // This device won the race — it performs the real reset for everyone
-      cloudDb.ref('counters/normal').set(1);
-      cloudDb.ref('counters/gst').set(1);
-    }
-    applyLocalFYReset();
-  }).catch(()=>{ /* stay pending, will retry once cloud is reachable */ });
-}
-if(pendingFYReset && !cloudDb){
-  // Offline at launch: reset locally now; nextInvoiceNumber() will still
-  // reconcile with the cloud counter (and the guarded reset above) once
-  // any device comes back online.
-  applyLocalFYReset();
-}
 
 /* ===================== Combined part list ===================== */
 function allParts(){
@@ -660,6 +500,7 @@ function esc(str){
 }
 
 /* ===================== Toast ===================== */
+let toastTimer;
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -686,6 +527,7 @@ function switchToView(v, activeBtn, pushState){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   const btn = activeBtn || document.querySelector('.tab[data-view="'+v+'"]');
   if(btn) btn.classList.add('active');
+  document.getElementById('app').dataset.section = (btn && btn.dataset.tabcolor) || v;
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.getElementById('topEyebrow').textContent = titles[v][0];
@@ -1025,6 +867,7 @@ function setInvoiceMode(mode){
   const isGst = mode === 'gst';
   document.getElementById('gstToggleField').style.display = isGst ? 'none' : '';
   document.getElementById('discountField').style.display = isGst ? 'none' : '';
+  document.getElementById('fillVenusBtn').style.display = isGst ? '' : 'none';
   if(isGst){
     document.getElementById('gstToggle').value = 'with';
     document.getElementById('invoiceDiscount').value = '';
@@ -1039,8 +882,8 @@ function resetInvoiceForm(){
   document.getElementById('buyerGstin').value='';
   document.getElementById('buyerState').value='06';
   autoInvoiceNo = invoiceMode==='gst'
-    ? resolvePrefix(settings.gstPrefix||'') + padSeq(settings.gstNextNum)
-    : resolvePrefix(settings.prefix||'') + padSeq(settings.nextNum);
+    ? (settings.gstPrefix||'') + settings.gstNextNum
+    : (settings.prefix||'') + settings.nextNum;
   document.getElementById('invoiceNo').value = autoInvoiceNo;
   document.getElementById('invoiceDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('invoiceDiscount').value = '';
@@ -1054,6 +897,7 @@ function resetInvoiceForm(){
 
 document.getElementById('newInvoiceBtn').addEventListener('click', ()=>{
   setInvoiceMode('normal');
+  resetInvoiceForm();
 });
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1061,6 +905,9 @@ document.getElementById('venusBillBtn').addEventListener('click', ()=>{
   setInvoiceMode('gst');
   resetInvoiceForm();
   document.getElementById('topTitle').textContent = 'GST Invoice';
+});
+
+document.getElementById('fillVenusBtn').addEventListener('click', ()=>{
   document.getElementById('buyerName').value = 'Venus Home Appliances Pvt. Ltd.';
   document.getElementById('buyerAddress').value = '1st Floor AB-8, Community Center, New Delhi-110029';
   document.getElementById('buyerGstin').value = '07AABCV6878P1ZD';
@@ -1096,8 +943,8 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     saveBtn.textContent = 'Reserving number…';
     try{
       const allocated = await nextInvoiceNumber(invoiceMode);
-      const prefix = invoiceMode==='gst' ? resolvePrefix(settings.gstPrefix||'') : resolvePrefix(settings.prefix||'');
-      finalInvoiceNo = prefix + padSeq(allocated);
+      const prefix = invoiceMode==='gst' ? (settings.gstPrefix||'') : (settings.prefix||'');
+      finalInvoiceNo = prefix + allocated;
       invoiceNoField.value = finalInvoiceNo;
       if(invoiceMode === 'gst') settings.gstNextNum = allocated + 1;
       else settings.nextNum = allocated + 1;
@@ -1113,7 +960,6 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
   const inv = {
     id: Date.now(),
     invoiceNo: finalInvoiceNo,
-    type: invoiceMode,
     date: document.getElementById('invoiceDate').value,
     buyer: {
       name: buyerName,
@@ -1124,6 +970,7 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     },
     items: validItems,
     totals,
+    type: invoiceMode,
     showTerms: document.getElementById('showTermsToggle').checked,
     settingsSnapshot: {...settings}
   };
@@ -1386,13 +1233,12 @@ function shareInvoice(inv){
 }
 
 /* ===================== History view ===================== */
-let historyFilter = 'normal';
+let historyFilter = 'all';
 let historySearchQuery = '';
 
 function invoiceTypeOf(inv){
   if(inv.type === 'gst' || inv.type === 'normal') return inv.type;
-  const gstRegex = prefixToRegex(settings.gstPrefix);
-  return (gstRegex && gstRegex.test(inv.invoiceNo||'')) ? 'gst' : 'normal';
+  return (settings.gstPrefix && (inv.invoiceNo||'').indexOf(settings.gstPrefix) === 0) ? 'gst' : 'normal';
 }
 
 function invoiceMatchesSearch(inv, q){
@@ -1432,7 +1278,7 @@ function renderHistory(){
   const searching = q.length > 0;
   const filtered = [];
   invoices.forEach((inv, idx)=>{
-    const typeOk = invoiceTypeOf(inv)===historyFilter;
+    const typeOk = historyFilter==='all' || invoiceTypeOf(inv)===historyFilter;
     const monthOk = searching || (inv.date||'').slice(0,7) === historySummaryYm;
     if(typeOk && monthOk && invoiceMatchesSearch(inv, q)) filtered.push({inv, idx});
   });
@@ -1501,7 +1347,7 @@ function loadInvoiceForEdit(idx){
   const inv = invoices[idx];
   if(!inv) return;
   editingIndex = idx;
-  const looksLikeGst = invoiceTypeOf(inv) === 'gst';
+  const looksLikeGst = settings.gstPrefix && (inv.invoiceNo||'').indexOf(settings.gstPrefix) === 0;
   setInvoiceMode(looksLikeGst ? 'gst' : 'normal');
   document.getElementById('buyerName').value = inv.buyer.name || '';
   document.getElementById('buyerMobile').value = inv.buyer.mobile || '';
@@ -1629,17 +1475,30 @@ const firebaseConfig = {
   appId: "1:1048466583399:web:75c27ac49bb4464b3d49c2"
 };
 
+let cloudDb = null;
+let cloudSyncTimer = null;
+let cloudSyncing = false;
+let lastCloudUpdatedAt = null;
+let firstLoadDone = false;
+const DEVICE_ID = (function(){
+  let id = localStorage.getItem('sss_device_id');
+  if(!id){ id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); localStorage.setItem('sss_device_id', id); }
+  return id;
+})();
+
 function initCloudSync(){
   try{
     if(typeof firebase === 'undefined'){ console.warn('Firebase SDK not loaded, cloud sync disabled'); setCloudStatus('offline'); return; }
     firebase.initializeApp(firebaseConfig);
+    cloudDb = firebase.database();
     setCloudStatus('syncing');
     firebase.auth().signInAnonymously().then(()=>{
-      cloudDb = firebase.database();
+      // Auto-Sync on Launch: pull immediately, then keep listening in the
+      // background so every connected device stays in sync automatically.
       listenToCloud();
-      tryCloudGuardedFYReset();
-    }).catch(err=>{
-      console.warn('Anonymous sign-in failed, cloud sync disabled', err);
+    }).catch(e=>{
+      console.warn('Cloud auth failed', e);
+      cloudDb = null;
       setCloudStatus('offline');
     });
   }catch(e){ console.warn('Cloud sync unavailable', e); setCloudStatus('offline'); }
@@ -1754,64 +1613,6 @@ function nextInvoiceNumber(mode){
 }
 
 window.addEventListener('DOMContentLoaded', initCloudSync);
-
-/* ===================== App Lock (PIN screen) ===================== */
-(function(){
-  let entered = '';
-  const dotsBox = document.getElementById('pinDots');
-  const overlay = document.getElementById('lockOverlay');
-  const errBox = document.getElementById('lockError');
-
-  function paintDots(){
-    const dots = dotsBox.querySelectorAll('.pd');
-    dots.forEach((d, i)=> d.classList.toggle('filled', i < entered.length));
-  }
-
-  function tryUnlock(){
-    const correctPin = (settings.appPin || '1234').toString();
-    if(entered === correctPin){
-      overlay.style.display = 'none';
-      entered = '';
-    } else {
-      errBox.textContent = 'Wrong code, try again';
-      overlay.classList.add('lock-shake');
-      setTimeout(()=>overlay.classList.remove('lock-shake'), 350);
-      entered = '';
-      paintDots();
-    }
-  }
-
-  document.getElementById('pinPad').addEventListener('click', (e)=>{
-    const btn = e.target.closest('button');
-    if(!btn) return;
-    const k = btn.dataset.k;
-    errBox.textContent = '';
-    if(k === 'clear'){ entered = ''; }
-    else if(k === 'back'){ entered = entered.slice(0, -1); }
-    else if(entered.length < 4){ entered += k; }
-    paintDots();
-    if(entered.length === 4){ setTimeout(tryUnlock, 120); }
-  });
-
-  // Also allow physical keyboard digits (handy for desktop testing)
-  document.addEventListener('keydown', (e)=>{
-    if(overlay.style.display === 'none') return;
-    if(/^[0-9]$/.test(e.key) && entered.length < 4){ entered += e.key; errBox.textContent=''; paintDots(); if(entered.length===4) setTimeout(tryUnlock, 120); }
-    else if(e.key === 'Backspace'){ entered = entered.slice(0, -1); paintDots(); }
-  });
-})();
-
-document.getElementById('saveAppPinBtn').addEventListener('click', ()=>{
-  const p1 = document.getElementById('setAppPin').value.trim();
-  const p2 = document.getElementById('setAppPinConfirm').value.trim();
-  if(!/^\d{4}$/.test(p1)){ alert('Please enter a 4-digit numeric code.'); return; }
-  if(p1 !== p2){ alert('Codes do not match.'); return; }
-  settings.appPin = p1;
-  LS.set('sss_settings', settings);
-  document.getElementById('setAppPin').value = '';
-  document.getElementById('setAppPinConfirm').value = '';
-  toast('✅ App lock code updated');
-});
 
 /* ===================== Init ===================== */
 renderPartList();
