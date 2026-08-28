@@ -441,6 +441,26 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 <script>
 /* ===================== Storage helpers ===================== */
 const CLOUD_KEYS = ['sss_settings','sss_price_overrides','sss_custom_parts','sss_invoices'];
+
+// Declared here (near the very top) on purpose: settings/migration code
+// below can trigger a save (LS.set -> pushToCloud) during the very first
+// synchronous pass through this script, before the Firebase section (much
+// further down) would normally run. If these weren't declared yet at that
+// point, referencing them would throw and silently abort the rest of the
+// script — including the PIN-lock keypad wiring at the bottom, which is
+// exactly the "PIN does nothing on first try" bug this fixes.
+let cloudDb = null;
+let cloudSyncTimer = null;
+let cloudSyncing = false;
+let lastCloudUpdatedAt = null;
+let firstLoadDone = false;
+let toastTimer;
+const DEVICE_ID = (function(){
+  let id = localStorage.getItem('sss_device_id');
+  if(!id){ id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); localStorage.setItem('sss_device_id', id); }
+  return id;
+})();
+
 const LS = {
   get(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
   set(key, val){
@@ -524,26 +544,15 @@ function migrateAddFY(str){
   parts.splice(1, 0, 'FY');
   return parts.join('/');
 }
-(function migrateSettingsPrefixes(){
-  let changed = false;
-  let p = migratePrefixToMonthly(settings.prefix);
-  let g = migratePrefixToMonthly(settings.gstPrefix);
-  p = migrateAddFY(p);
-  g = migrateAddFY(g);
-  if(p !== settings.prefix){ settings.prefix = p; changed = true; }
-  if(g !== settings.gstPrefix){ settings.gstPrefix = g; changed = true; }
-  if(changed) LS.set('sss_settings', settings);
-})();
-
 let overrides = LS.get('sss_price_overrides', {});     // {code: {fbasic, cbasic}}
 let customParts = LS.get('sss_custom_parts', []);       // [[code,hsn,cat,desc,fbasic,cbasic], ...]
 let invoices = LS.get('sss_invoices', []);
 
 // One-time backfill: older saved invoices don't carry an explicit "type"
 // field — they were told apart from their invoiceNo prefix. Freeze that
-// classification onto each invoice NOW, using today's prefix pattern,
-// before the prefix format itself changes below — so old bills never get
-// misclassified after the format switch.
+// classification onto each invoice NOW, using the prefix pattern as it
+// stood at the START of this session — BEFORE the migrations below change
+// it — so old bills never get misclassified after any format switch.
 (function backfillInvoiceTypes(){
   let changed = false;
   const gstRegexNow = prefixToRegex(settings.gstPrefix);
@@ -554,6 +563,17 @@ let invoices = LS.get('sss_invoices', []);
     }
   });
   if(changed) LS.set('sss_invoices', invoices);
+})();
+
+(function migrateSettingsPrefixes(){
+  let changed = false;
+  let p = migratePrefixToMonthly(settings.prefix);
+  let g = migratePrefixToMonthly(settings.gstPrefix);
+  p = migrateAddFY(p);
+  g = migrateAddFY(g);
+  if(p !== settings.prefix){ settings.prefix = p; changed = true; }
+  if(g !== settings.gstPrefix){ settings.gstPrefix = g; changed = true; }
+  if(changed) LS.set('sss_settings', settings);
 })();
 
 /* ---- One-time scheduled prefix format upgrade ----
@@ -633,7 +653,6 @@ function esc(str){
 }
 
 /* ===================== Toast ===================== */
-let toastTimer;
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -1602,17 +1621,6 @@ const firebaseConfig = {
   messagingSenderId: "1048466583399",
   appId: "1:1048466583399:web:75c27ac49bb4464b3d49c2"
 };
-
-let cloudDb = null;
-let cloudSyncTimer = null;
-let cloudSyncing = false;
-let lastCloudUpdatedAt = null;
-let firstLoadDone = false;
-const DEVICE_ID = (function(){
-  let id = localStorage.getItem('sss_device_id');
-  if(!id){ id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); localStorage.setItem('sss_device_id', id); }
-  return id;
-})();
 
 function initCloudSync(){
   try{
