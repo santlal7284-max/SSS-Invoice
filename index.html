@@ -175,8 +175,8 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 
 /* PDF in-app preview */
 .pdfview-overlay{display:none; position:fixed; inset:0; background:#fff; z-index:90; flex-direction:column;}
-.pdfview-header{display:flex; align-items:center; justify-content:space-between; background:var(--navy); color:#fff; padding:12px 14px; font-weight:700; font-size:15px;}
-.btn-pdfview{background:var(--amber); color:#2B1B00; border:none; padding:8px 14px; font-size:13px; font-weight:700; border-radius:7px;}
+.pdfview-header{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; background:var(--navy); color:#fff; padding:10px 14px; font-weight:700; font-size:14px;}
+.btn-pdfview{background:var(--amber); color:#2B1B00; border:none; padding:7px 10px; font-size:12.5px; font-weight:700; border-radius:7px; white-space:nowrap;}
 .pdfview-frame{flex:1; width:100%; overflow-y:auto; background:var(--bg); padding:14px;}
 
 /* PIN lock screen */
@@ -428,6 +428,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
   <div class="pdfview-header">
     <span id="pdfViewTitle">Invoice</span>
     <div style="display:flex; gap:8px;">
+      <button class="btn-pdfview" id="pdfViewChatBtn">💬 Chat</button>
       <button class="btn-pdfview" id="pdfViewShareBtn">📤 Share</button>
       <button class="btn-pdfview" id="pdfViewCloseBtn">✕ Close</button>
     </div>
@@ -1220,6 +1221,7 @@ function buildInvoiceFromForm(){
   const totals = renderTotals();
   return {
     invoiceNo: document.getElementById('invoiceNo').value,
+    type: invoiceMode,
     date: document.getElementById('invoiceDate').value,
     buyer: {
       name: document.getElementById('buyerName').value,
@@ -1329,8 +1331,8 @@ function invoiceHtml(inv){
     ${inv.showTerms !== false ? `<div style="margin-top:14px; font-size:10px; color:#555; border-top:1px dashed #bbb; padding-top:6px; line-height:1.5;">
       <b>Terms &amp; Conditions:</b> Spare parts carry a warranty of 3 months from the date of this invoice. Service charges are valid for a period of 1 month from the date of service. Warranty is applicable only against manufacturing defects and does not cover physical damage, misuse, or issues arising from unauthorised repairs.
     </div>` : ''}
-    <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:flex-end; gap:12px;">
-      <div style="font-size:10.5px; border:1px solid #999; border-radius:4px; padding:8px 10px; line-height:1.55;">
+    <div style="margin-top:14px; display:flex; justify-content:${inv.type==='normal' ? 'flex-end' : 'space-between'}; align-items:flex-end; gap:12px;">
+      ${inv.type==='normal' ? '' : `<div style="font-size:10.5px; border:1px solid #999; border-radius:4px; padding:8px 10px; line-height:1.55;">
         <div style="font-weight:700; font-size:11.5px; margin-bottom:3px; letter-spacing:0.03em;">BANK DETAILS</div>
         <div><b>Bank Name:</b> Indian Overseas Bank</div>
         <div><b>Branch:</b> Sector 28 Faridabad</div>
@@ -1338,7 +1340,7 @@ function invoiceHtml(inv){
         <div><b>Account Name:</b> M/S SANT SALES & SERVICE</div>
         <div><b>Account Type:</b> CAA - GOLD</div>
         <div><b>IFSC Code:</b> IOBA0001834</div>
-      </div>
+      </div>`}
       <div style="text-align:center;">For ${esc(settings.companyName)}<br>${getSignature() ? '<img src="'+getSignature()+'" style="max-height:55px; max-width:160px; display:block; margin:4px auto;">' : '<br><br><br>'}Authorised Signatory</div>
     </div>
     </div>
@@ -1432,6 +1434,16 @@ document.getElementById('pdfViewCloseBtn').addEventListener('click', ()=>{
 
 document.getElementById('pdfViewShareBtn').addEventListener('click', ()=>{
   if(currentlyViewedInvoice) shareInvoice(currentlyViewedInvoice);
+});
+
+document.getElementById('pdfViewChatBtn').addEventListener('click', ()=>{
+  const inv = currentlyViewedInvoice;
+  if(!inv) return;
+  let mobile = (inv.buyer && inv.buyer.mobile ? inv.buyer.mobile : '').replace(/\D/g, '');
+  if(!mobile){ toast('⚠ No mobile number saved for this bill'); return; }
+  if(mobile.length === 10) mobile = '91' + mobile; // add India country code if not already present
+  const msg = 'Namaste, aapka invoice ' + (inv.invoiceNo||'') + ' taiyar hai. PDF thodi der mein bhej raha hoon.';
+  window.open('https://wa.me/' + mobile + '?text=' + encodeURIComponent(msg), '_blank');
 });
 
 function shareInvoice(inv){
