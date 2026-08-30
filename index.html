@@ -1713,17 +1713,22 @@ const firebaseConfig = {
   appId: "1:1048466583399:web:75c27ac49bb4464b3d49c2"
 };
 
+// Fixed app account — locks Firebase access to only this app (via its
+// rules checking auth.uid), instead of any random anonymous session.
+const APP_CLOUD_EMAIL = 'sss-invoice-inalsa@santsalesservice.com';
+const APP_CLOUD_PASSWORD = 'Abbbanps@5253';
+
 function initCloudSync(){
   try{
     if(typeof firebase === 'undefined'){ console.warn('Firebase SDK not loaded, cloud sync disabled'); setCloudStatus('offline'); return; }
     firebase.initializeApp(firebaseConfig);
     setCloudStatus('syncing');
-    firebase.auth().signInAnonymously().then(()=>{
+    firebase.auth().signInWithEmailAndPassword(APP_CLOUD_EMAIL, APP_CLOUD_PASSWORD).then(()=>{
       cloudDb = firebase.database();
       listenToCloud();
       tryCloudGuardedFYReset();
     }).catch(err=>{
-      console.warn('Anonymous sign-in failed, cloud sync disabled', err);
+      console.warn('App sign-in failed, cloud sync disabled', err);
       setCloudStatus('offline');
     });
   }catch(e){ console.warn('Cloud sync unavailable', e); setCloudStatus('offline'); }
