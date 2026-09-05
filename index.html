@@ -861,6 +861,7 @@ function renderPartList(){
         <span class="lbl">Customer Landing ₹</span>
         <input type="number" step="0.01" class="price-input ${isOv?'overridden':''}" data-code="${esc(p.code)}" data-field="cbasic" value="${fmt(customerLandingPrice(p.cbasic))}">
         ${(!p.custom && isOv) ? '<button class="revert-btn" data-revert="'+esc(p.code)+'" title="Original rate par wapas jayein">↺</button>' : ''}
+        ${p.custom ? '<button class="revert-btn" data-delete="'+esc(p.code)+'" title="Is part ko list se hataayein" style="color:var(--red);">🗑</button>' : ''}
       </div>`;
     list.appendChild(div);
   });
@@ -895,12 +896,27 @@ document.getElementById('partList').addEventListener('change', (e)=>{
 
 document.getElementById('partList').addEventListener('click', (e)=>{
   const btn = e.target.closest('[data-revert]');
-  if(!btn) return;
-  delete overrides[btn.dataset.revert];
-  LS.set('sss_price_overrides', overrides);
-  refreshParts();
-  renderPartList();
-  toast('Original rate restored');
+  if(btn){
+    delete overrides[btn.dataset.revert];
+    LS.set('sss_price_overrides', overrides);
+    refreshParts();
+    renderPartList();
+    toast('Original rate restored');
+    return;
+  }
+  const delBtn = e.target.closest('[data-delete]');
+  if(delBtn){
+    const code = delBtn.dataset.delete;
+    const customIdx = customParts.findIndex(r=>r[0]===code);
+    if(customIdx === -1) return; // safety: only custom parts can be deleted
+    const p = findPart(code);
+    if(!confirm('Delete "' + (p ? p.desc : code) + '" from the price list?\n\nThis cannot be undone.')) return;
+    customParts.splice(customIdx, 1);
+    LS.set('sss_custom_parts', customParts);
+    refreshParts();
+    renderPartList();
+    toast('🗑 Part deleted');
+  }
 });
 
 function openAddPartModal(){
