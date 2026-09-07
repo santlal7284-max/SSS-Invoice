@@ -1383,7 +1383,7 @@ function invoiceHtml(inv){
 
 let _libsPromise = null;
 function ensurePdfLibs(){
-  if(window.jspdf && window.jspdf.jsPDF && window.jspdf.autoTable) return Promise.resolve();
+  if(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable) return Promise.resolve();
   if(_libsPromise) return _libsPromise;
   function loadScript(src){
     return new Promise((resolve, reject)=>{
@@ -1394,34 +1394,36 @@ function ensurePdfLibs(){
       document.head.appendChild(s);
     });
   }
-  _libsPromise = Promise.all([
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js')
-  ]).then(async ()=>{
-    // Noto Sans is embedded into the PDF so the rupee symbol (₹) stays as
-    // real Unicode text instead of being converted to an image or "Rs.".
-    // This materially improves copy/search/VBA extraction of Indian bills.
-    if(!window.__sssPdfFontReady){
-      const r = await fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosans/static/NotoSans-Regular.ttf');
-      if(!r.ok) throw new Error('Failed to load PDF font');
-      const buf = await r.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      let binary = '';
-      const chunk = 0x8000;
-      for(let i=0;i<bytes.length;i+=chunk){
-        binary += String.fromCharCode(...bytes.subarray(i, Math.min(i+chunk, bytes.length)));
+  // IMPORTANT: AutoTable must load AFTER jsPDF. Loading both with Promise.all
+  // can race on GitHub Pages and leave autoTable undefined.
+  _libsPromise = loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+    .then(()=>loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'))
+    .then(async ()=>{
+      if(!window.jspdf || !window.jspdf.jsPDF) throw new Error('jsPDF did not load');
+      if(!window.jspdf.jsPDF.API || !window.jspdf.jsPDF.API.autoTable) throw new Error('jsPDF-AutoTable did not load');
+
+      // Unicode font is optional. If the network blocks the font, the PDF still
+      // works using Helvetica and money is rendered as Rs. rather than failing.
+      if(!window.__sssPdfFontReady){
+        try{
+          const r = await fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosans/static/NotoSans-Regular.ttf', {cache:'force-cache'});
+          if(r.ok){
+            const buf = await r.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+            let binary = '';
+            const chunk = 0x8000;
+            for(let i=0;i<bytes.length;i+=chunk){
+              binary += String.fromCharCode(...bytes.subarray(i, Math.min(i+chunk, bytes.length)));
+            }
+            window.__sssPdfFontBase64 = btoa(binary);
+            window.__sssPdfFontReady = true;
+          }
+        }catch(e){
+          window.__sssPdfFontReady = false;
+        }
       }
-      const base64 = btoa(binary);
-      const { jsPDF } = window.jspdf;
-      const probe = new jsPDF();
-      probe.addFileToVFS('NotoSans-Regular.ttf', base64);
-      probe.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
-      // jsPDF's VFS/font registration is instance-scoped, so keep the base64
-      // data available and register it on every generated document.
-      window.__sssPdfFontBase64 = base64;
-      window.__sssPdfFontReady = true;
-    }
-  }).catch((err)=>{ _libsPromise = null; throw err; });
+    })
+    .catch((err)=>{ _libsPromise = null; throw err; });
   return _libsPromise;
 }
 
@@ -1454,13 +1456,16 @@ function buildInvoicePdf(inv){
     // Keep the same visual identity as the HTML invoice while keeping every
     // bill value as real PDF text. Images are used only for the existing logos
     // and signature, exactly as they are in the original invoice preview.
-    pdf.addFileToVFS('NotoSans-Regular.ttf', window.__sssPdfFontBase64);
-    pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+    const hasUnicodeFont = !!window.__sssPdfFontReady && !!window.__sssPdfFontBase64;
+    if(hasUnicodeFont){
+      pdf.addFileToVFS('NotoSans-Regular.ttf', window.__sssPdfFontBase64);
+      pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+    }
 
     const safe = (v) => String(v == null ? '' : v);
-    const money = (v) => '₹' + fmt(Number(v)||0);
+    const money = (v) => (hasUnicodeFont ? '₹' : 'Rs.') + fmt(Number(v)||0);
     const text = (v,x,y,size=9,style='normal',align='left',color=textCol) => {
-      pdf.setFont('NotoSans','normal');
+      pdf.setFont(hasUnicodeFont ? 'NotoSans' : 'helvetica','normal');
       pdf.setFontSize(size);
       pdf.setTextColor(...color);
       pdf.text(safe(v), x, y, {align});
@@ -1540,8 +1545,8 @@ function buildInvoicePdf(inv){
       head:[['Sr','Description','HSN','Qty','Rate','Taxable']],
       body,
       theme:'grid',
-      styles:{font:'NotoSans',fontSize:8.6,cellPadding:2.1,textColor:textCol,lineColor:border,lineWidth:0.25,overflow:'linebreak'},
-      headStyles:{font:'NotoSans',fontStyle:'bold',fillColor:navyPale,textColor:navy,lineColor:border,lineWidth:0.25},
+      styles:{font:(hasUnicodeFont ? 'NotoSans' : 'helvetica'),fontSize:8.6,cellPadding:2.1,textColor:textCol,lineColor:border,lineWidth:0.25,overflow:'linebreak'},
+      headStyles:{font:(hasUnicodeFont ? 'NotoSans' : 'helvetica'),fontStyle:'bold',fillColor:navyPale,textColor:navy,lineColor:border,lineWidth:0.25},
       columnStyles:{0:{cellWidth:12,halign:'center'},1:{cellWidth:75},2:{cellWidth:23},3:{cellWidth:16,halign:'right'},4:{cellWidth:27,halign:'right'},5:{cellWidth:37,halign:'right'}},
       didDrawPage:(data)=>{
         // Repeat only the watermark on overflow pages so it never covers text.
@@ -1572,7 +1577,7 @@ function buildInvoicePdf(inv){
       tableWidth:contentW-88,
       body:totalsRows,
       theme:'grid',
-      styles:{font:'NotoSans',fontSize:8.6,cellPadding:2,textColor:textCol,lineColor:border,lineWidth:0.25},
+      styles:{font:(hasUnicodeFont ? 'NotoSans' : 'helvetica'),fontSize:8.6,cellPadding:2,textColor:textCol,lineColor:border,lineWidth:0.25},
       columnStyles:{0:{cellWidth:55,halign:'right'},1:{cellWidth:37,halign:'right'}},
       didParseCell:(data)=>{
         if(data.row.index === totalsRows.length-1){ data.cell.styles.fontStyle='bold'; data.cell.styles.fontSize=9.6; data.cell.styles.textColor=navy; }
