@@ -1397,7 +1397,31 @@ function ensurePdfLibs(){
   _libsPromise = Promise.all([
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js')
-  ]).catch((err)=>{ _libsPromise = null; throw err; });
+  ]).then(async ()=>{
+    // Noto Sans is embedded into the PDF so the rupee symbol (₹) stays as
+    // real Unicode text instead of being converted to an image or "Rs.".
+    // This materially improves copy/search/VBA extraction of Indian bills.
+    if(!window.__sssPdfFontReady){
+      const r = await fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosans/static/NotoSans-Regular.ttf');
+      if(!r.ok) throw new Error('Failed to load PDF font');
+      const buf = await r.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      const chunk = 0x8000;
+      for(let i=0;i<bytes.length;i+=chunk){
+        binary += String.fromCharCode(...bytes.subarray(i, Math.min(i+chunk, bytes.length)));
+      }
+      const base64 = btoa(binary);
+      const { jsPDF } = window.jspdf;
+      const probe = new jsPDF();
+      probe.addFileToVFS('NotoSans-Regular.ttf', base64);
+      probe.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+      // jsPDF's VFS/font registration is instance-scoped, so keep the base64
+      // data available and register it on every generated document.
+      window.__sssPdfFontBase64 = base64;
+      window.__sssPdfFontReady = true;
+    }
+  }).catch((err)=>{ _libsPromise = null; throw err; });
   return _libsPromise;
 }
 
@@ -1418,59 +1442,92 @@ function buildInvoicePdf(inv){
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4', compress:true });
     const pageW = 210, pageH = 297, margin = 10, contentW = pageW - margin*2;
+    const navy = [18,37,63];
+    const navyPale = [237,241,246];
+    const amber = [200,134,42];
+    const border = [153,153,153];
+    const textCol = [22,35,58];
     const gst = inv.totals && inv.totals.gst ? inv.totals.gst : {};
     const gstOn = gst.gstOn !== false;
     const gstPctUsed = gstOn ? (gst.intra ? ((gst.cgst||0)+(gst.sgst||0)) : (gst.igst||0)) : 0;
 
-    // Built-in Helvetica is intentionally used for maximum compatibility with
-    // PDF text extraction tools. The rupee glyph is replaced with "Rs." only
-    // in the PDF text layer; numeric values themselves are unchanged.
-    const safe = (v) => String(v == null ? '' : v).replace(/₹/g, 'Rs.');
-    const money = (v) => 'Rs.' + fmt(Number(v)||0);
-    const text = (v,x,y,size=9,style='normal',align='left') => {
-      pdf.setFont('helvetica', style);
+    // Keep the same visual identity as the HTML invoice while keeping every
+    // bill value as real PDF text. Images are used only for the existing logos
+    // and signature, exactly as they are in the original invoice preview.
+    pdf.addFileToVFS('NotoSans-Regular.ttf', window.__sssPdfFontBase64);
+    pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+
+    const safe = (v) => String(v == null ? '' : v);
+    const money = (v) => '₹' + fmt(Number(v)||0);
+    const text = (v,x,y,size=9,style='normal',align='left',color=textCol) => {
+      pdf.setFont('NotoSans','normal');
       pdf.setFontSize(size);
+      pdf.setTextColor(...color);
       pdf.text(safe(v), x, y, {align});
     };
-    const line = (x1,y1,x2,y2,w=0.25) => { pdf.setLineWidth(w); pdf.line(x1,y1,x2,y2); };
-    const rect = (x,y,w,h,lw=0.25) => { pdf.setLineWidth(lw); pdf.rect(x,y,w,h); };
+    const line = (x1,y1,x2,y2,w=0.25,color=border) => {
+      pdf.setDrawColor(...color); pdf.setLineWidth(w); pdf.line(x1,y1,x2,y2);
+    };
+    const rect = (x,y,w,h,lw=0.25,color=border) => {
+      pdf.setDrawColor(...color); pdf.setLineWidth(lw); pdf.rect(x,y,w,h);
+    };
 
-    // Header
+    // Original invoice watermark: same wording, amber tone and diagonal angle.
+    const drawWatermark = () => {
+      pdf.setFont('NotoSans','normal');
+      pdf.setFontSize(22);
+      pdf.setTextColor(...amber);
+      if(pdf.GState && pdf.setGState){ pdf.setGState(new pdf.GState({opacity:0.16})); }
+      pdf.text('SANT SALES & SERVICE', pageW/2, 151, {align:'center', angle:-28});
+      if(pdf.GState && pdf.setGState){ pdf.setGState(new pdf.GState({opacity:1})); }
+      pdf.setTextColor(...textCol);
+    };
+    drawWatermark();
+
+    // Header — mirrors the original .paper / .ph layout.
     let y = margin;
-    text(gstOn ? 'TAX INVOICE' : 'INVOICE', pageW/2, y+5, 14, 'bold', 'center');
-    line(margin,y+8,pageW-margin,y+8,0.6);
-    y += 14;
-    text(settings.companyName, pageW/2, y, 15, 'bold', 'center'); y += 5;
-    text(settings.address, pageW/2, y, 8.5, 'normal', 'center'); y += 4;
-    text('Contact: '+settings.contact+'   Email: '+settings.email, pageW/2, y, 8, 'normal', 'center'); y += 4;
-    text('INALSA/VENUS Authorised Service Center', pageW/2, y, 8.5, 'bold', 'center'); y += 6;
+    try { pdf.addImage(LOGO_INALSA, 'JPEG', margin, y, 28, 10); } catch(e) {}
+    try { pdf.addImage(LOGO_VENUS, 'JPEG', pageW-margin-31, y, 31, 10); } catch(e) {}
+    text(gstOn ? 'TAX INVOICE' : 'INVOICE', pageW/2, y+7, 13.5, 'bold', 'center', navy);
+    line(margin, y+11, pageW-margin, y+11, 0.65, navy);
+    y += 17;
 
-    // Seller tax identifiers
-    rect(margin,y,contentW,10);
-    text('GSTIN: '+settings.gstin, margin+3, y+4.2, 8.2, 'bold');
-    text('State Code: '+settings.stateCode, margin+75, y+4.2, 8.2, 'bold');
-    text('PAN: '+settings.pan, pageW-margin-3, y+4.2, 8.2, 'bold', 'right');
-    y += 14;
+    text(settings.companyName, pageW/2, y, 16, 'bold', 'center', textCol); y += 5;
+    text(settings.address, pageW/2, y, 10.5, 'normal', 'center', textCol); y += 4.5;
+    text('Contact: '+settings.contact+'   Email: '+settings.email, pageW/2, y, 10, 'normal', 'center', textCol); y += 4.5;
+    text('INALSA/VENUS Authorised Service Center', pageW/2, y, 10.5, 'bold', 'center', amber); y += 7;
 
-    // Buyer + invoice metadata block
-    const metaH = 28, splitX = margin + contentW*0.66;
-    rect(margin,y,contentW,metaH);
-    line(splitX,y,splitX,y+metaH);
-    text('Billing To:', margin+3, y+5, 8.5, 'bold');
-    text(inv.buyer && inv.buyer.name, margin+3, y+10, 8.2, 'normal');
-    text(inv.buyer && inv.buyer.address, margin+3, y+14.5, 7.8, 'normal');
-    if(inv.buyer && inv.buyer.mobile) text('Mobile: '+inv.buyer.mobile, margin+3, y+19, 7.8);
-    text('GSTIN: '+((inv.buyer&&inv.buyer.gstin)||''), margin+3, y+23.5, 7.5);
-    text('State Code: '+((inv.buyer&&inv.buyer.stateCode)||''), splitX-3, y+23.5, 7.5, 'normal', 'right');
-    text('Invoice No:', splitX+4, y+6, 8.2, 'bold');
-    text(inv.invoiceNo, pageW-margin-4, y+6, 8.2, 'normal', 'right');
-    text('Date:', splitX+4, y+12, 8.2, 'bold');
-    text(inv.date, pageW-margin-4, y+12, 8.2, 'normal', 'right');
-    text('Bill Type:', splitX+4, y+18, 8.2, 'bold');
-    text(gstOn ? 'With GST' : 'Without GST', pageW-margin-4, y+18, 8.2, 'normal', 'right');
+    // Seller identifiers — same single-line visual treatment as the preview.
+    line(margin,y,pageW-margin,y,0.35,border);
+    text('GSTIN:', margin, y+5, 9.2, 'bold');
+    text(settings.gstin, margin+17, y+5, 9.2);
+    text('State Code:', margin+82, y+5, 9.2, 'bold');
+    text(settings.stateCode, margin+106, y+5, 9.2);
+    text('PAN:', pageW-margin-51, y+5, 9.2, 'bold');
+    text(settings.pan, pageW-margin, y+5, 9.2, 'normal', 'right');
+    y += 12;
+
+    // Buyer + invoice metadata — no rasterization, fixed reading order.
+    const metaH = 29;
+    const splitX = margin + contentW*0.66;
+    rect(margin,y,contentW,metaH,0.3,border);
+    line(splitX,y,splitX,y+metaH,0.3,border);
+    text('Billing To:', margin+3, y+5, 9.2, 'bold');
+    text(inv.buyer && inv.buyer.name, margin+3, y+10, 9.1);
+    text(inv.buyer && inv.buyer.address, margin+3, y+14.8, 8.3);
+    if(inv.buyer && inv.buyer.mobile) text('Mobile: '+inv.buyer.mobile, margin+3, y+19.5, 8.3);
+    text('GSTIN: '+((inv.buyer&&inv.buyer.gstin)||''), margin+3, y+24.3, 8.1);
+    text('State Code: '+((inv.buyer&&inv.buyer.stateCode)||''), splitX-3, y+24.3, 8.1, 'normal', 'right');
+
+    text('Invoice No:', splitX+4, y+6, 9, 'bold');
+    text(inv.invoiceNo, pageW-margin-4, y+6, 9, 'normal', 'right');
+    text('Date:', splitX+4, y+12, 9, 'bold');
+    text(inv.date, pageW-margin-4, y+12, 9, 'normal', 'right');
+    text('Bill Type:', splitX+4, y+18, 9, 'bold');
+    text(gstOn ? 'With GST' : 'Without GST', pageW-margin-4, y+18, 9, 'normal', 'right');
     y += metaH + 5;
 
-    // Item table. AutoTable writes actual PDF text and vector table lines.
+    // Item table — exact columns from the original HTML preview.
     const body = (inv.items||[]).map((it,i)=>{
       const amt = (it.qty||0)*(it.rate||0);
       const tax = it.taxIncl ? amt/(1+gstPctUsed/100) : amt;
@@ -1483,14 +1540,17 @@ function buildInvoicePdf(inv){
       head:[['Sr','Description','HSN','Qty','Rate','Taxable']],
       body,
       theme:'grid',
-      styles:{font:'helvetica',fontSize:8.5,cellPadding:2.2,textColor:[22,35,58],lineColor:[120,120,120],lineWidth:0.2,overflow:'linebreak'},
-      headStyles:{font:'helvetica',fontStyle:'bold',fillColor:[237,241,246],textColor:[18,37,63],lineColor:[120,120,120],lineWidth:0.2},
+      styles:{font:'NotoSans',fontSize:8.6,cellPadding:2.1,textColor:textCol,lineColor:border,lineWidth:0.25,overflow:'linebreak'},
+      headStyles:{font:'NotoSans',fontStyle:'bold',fillColor:navyPale,textColor:navy,lineColor:border,lineWidth:0.25},
       columnStyles:{0:{cellWidth:12,halign:'center'},1:{cellWidth:75},2:{cellWidth:23},3:{cellWidth:16,halign:'right'},4:{cellWidth:27,halign:'right'},5:{cellWidth:37,halign:'right'}},
-      didDrawPage:()=>{}
+      didDrawPage:(data)=>{
+        // Repeat only the watermark on overflow pages so it never covers text.
+        if(data.pageNumber > 1) drawWatermark();
+      }
     });
     y = (pdf.lastAutoTable && pdf.lastAutoTable.finalY ? pdf.lastAutoTable.finalY : y+10) + 3;
 
-    // Totals table — all values remain text objects.
+    // Totals — same labels/order as original invoiceHtml().
     const totalsRows = [];
     totalsRows.push(['Taxable Value'+(inv.totals.discountPct>0?' (before discount)':''), fmt(inv.totals.rawTaxable ?? inv.totals.taxable)]);
     if(inv.totals.discountPct>0){
@@ -1512,43 +1572,47 @@ function buildInvoicePdf(inv){
       tableWidth:contentW-88,
       body:totalsRows,
       theme:'grid',
-      styles:{font:'helvetica',fontSize:8.5,cellPadding:2,textColor:[22,35,58],lineColor:[120,120,120],lineWidth:0.2},
+      styles:{font:'NotoSans',fontSize:8.6,cellPadding:2,textColor:textCol,lineColor:border,lineWidth:0.25},
       columnStyles:{0:{cellWidth:55,halign:'right'},1:{cellWidth:37,halign:'right'}},
       didParseCell:(data)=>{
-        if(data.row.index === totalsRows.length-1){ data.cell.styles.fontStyle='bold'; data.cell.styles.fontSize=9.5; }
+        if(data.row.index === totalsRows.length-1){ data.cell.styles.fontStyle='bold'; data.cell.styles.fontSize=9.6; data.cell.styles.textColor=navy; }
       }
     });
     y = (pdf.lastAutoTable && pdf.lastAutoTable.finalY ? pdf.lastAutoTable.finalY : y+10) + 5;
 
-    // Terms
+    // Terms — same wording and light grey divider as the original.
     if(inv.showTerms !== false){
+      line(margin,y,pageW-margin,y,0.25,[187,187,187]);
       const terms = 'Terms & Conditions: Spare parts carry a warranty of 3 months from the date of this invoice. Service charges are valid for a period of 1 month from the date of service. Warranty is applicable only against manufacturing defects and does not cover physical damage, misuse, or issues arising from unauthorised repairs.';
-      pdf.setFont('helvetica','normal'); pdf.setFontSize(7.2); pdf.setTextColor(85,85,85);
-      const lines = pdf.splitTextToSize(safe(terms), contentW);
-      text('Terms & Conditions:', margin, y, 7.2, 'bold');
-      lines.slice(0,4).forEach((ln,idx)=>text(ln, margin, y+3.6+idx*3.3, 7.2));
-      y += 3.6 + Math.min(lines.length,4)*3.3 + 4;
-      pdf.setTextColor(22,35,58);
+      const lines = pdf.splitTextToSize(terms, contentW);
+      text('Terms & Conditions:', margin, y+4.2, 7.8, 'bold', 'left', [85,85,85]);
+      lines.slice(0,4).forEach((ln,idx)=>text(ln, margin, y+7.5+idx*3.5, 7.8, 'normal', 'left', [85,85,85]));
+      y += 8 + Math.min(lines.length,4)*3.5;
     }
 
-    // Footer / bank details / signatory. Keep text as PDF text.
-    const footerY = Math.min(y, pageH-35);
+    // Footer — preserve bank box and signature appearance from the original.
+    const footerY = Math.min(y+4, pageH-43);
     if(inv.type !== 'normal'){
-      const bankX = margin, bankY = footerY, bankW = 105, bankH = 25;
-      rect(bankX,bankY,bankW,bankH);
-      text('BANK DETAILS', bankX+3, bankY+5, 8.2, 'bold');
-      text('Bank Name: Indian Overseas Bank', bankX+3, bankY+9, 7.1);
-      text('Branch: Sector 28 Faridabad', bankX+3, bankY+12.5, 7.1);
-      text('Account Number: 183402000001164', bankX+3, bankY+16, 7.1);
-      text('Account Name: M/S SANT SALES & SERVICE', bankX+3, bankY+19.5, 7.1);
-      text('Account Type: CAA - GOLD   IFSC: IOBA0001834', bankX+3, bankY+23, 7.1);
+      const bankX = margin, bankY = footerY, bankW = 105, bankH = 27;
+      rect(bankX,bankY,bankW,bankH,0.3,border);
+      text('BANK DETAILS', bankX+3, bankY+5, 9, 'bold');
+      text('Bank Name: Indian Overseas Bank', bankX+3, bankY+9.5, 7.4);
+      text('Branch: Sector 28 Faridabad', bankX+3, bankY+13.2, 7.4);
+      text('Account Number: 183402000001164', bankX+3, bankY+16.9, 7.4);
+      text('Account Name: M/S SANT SALES & SERVICE', bankX+3, bankY+20.6, 7.4);
+      text('Account Type: CAA - GOLD   IFSC: IOBA0001834', bankX+3, bankY+24.3, 7.4);
     }
-    const sigX = pageW-40;
-    text('For '+settings.companyName, sigX, footerY+5, 7.5, 'normal', 'center');
-    text('Authorised Signatory', sigX, footerY+23, 7.5, 'normal', 'center');
 
-    // Page number is also vector text. For normal one-page invoices this is unobtrusive.
-    text('Page 1', pageW-margin, pageH-5, 6.5, 'normal', 'right');
+    const sigCenterX = inv.type === 'normal' ? pageW-32 : pageW-32;
+    text('For '+settings.companyName, sigCenterX, footerY+5, 8.2, 'normal', 'center');
+    const sig = getSignature();
+    if(sig){
+      try { pdf.addImage(sig, undefined, sigCenterX-20, footerY+7, 40, 20, undefined, 'FAST'); } catch(e) {}
+    }
+    text('Authorised Signatory', sigCenterX, footerY+30, 8.2, 'normal', 'center');
+
+    // Page footer.
+    text('Page '+pdf.getNumberOfPages(), pageW-margin, pageH-5, 6.5, 'normal', 'right', [100,100,100]);
     return pdf;
   });
 }
