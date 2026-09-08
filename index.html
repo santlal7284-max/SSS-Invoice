@@ -1412,7 +1412,24 @@ function ensurePdfLibs(){
 function buildInvoicePdf(inv){
   return ensurePdfLibs().then(() => {
     const { jsPDF } = window.jspdf;
+
+    // Pass 1 (silent measurement): render once on a throwaway document just
+    // to find out how tall the content actually is and how many pages it
+    // needs. Nothing from this pass is shown to the user.
+    const measureDoc = new jsPDF('p', 'mm', 'a4');
+    const measured = renderInvoicePdfContent(measureDoc, inv, { measureOnly: true });
+
+    // Pass 2 (real): draw the watermark centred on the ACTUAL content span
+    // measured above — instead of the page's geometric centre, which for a
+    // short invoice lands the watermark alone in the blank space below the
+    // content, looking out of place.
     const pdf = new jsPDF('p', 'mm', 'a4');
+    renderInvoicePdfContent(pdf, inv, { measureOnly: false, singlePageContentEndY: measured.pages === 1 ? measured.finalY : null });
+    return pdf;
+  });
+}
+
+function renderInvoicePdfContent(pdf, inv, opts){
     const pageW = 210, pageH = 297;
     const margin = 12;
     const contentW = pageW - margin * 2;
@@ -1426,11 +1443,21 @@ function buildInvoicePdf(inv){
     const gstOn = gst.gstOn !== false;
     const gstPctUsed = gstOn ? (gst.intra ? (gst.cgst + gst.sgst) : gst.igst) : 0;
 
+    // Watermark centring: for a single-page invoice (the common case), use
+    // the vertical mid-point of the ACTUAL content measured in pass 1, so
+    // it sits behind the content instead of floating in empty space below
+    // it. For multi-page invoices, each page is densely filled with table
+    // rows top-to-bottom anyway, so the page's geometric centre works well.
     function drawWatermark(){
+      if(opts.measureOnly) return;
+      let centerY = pageH / 2;
+      if(opts.singlePageContentEndY){
+        centerY = (margin + opts.singlePageContentEndY) / 2;
+      }
       pdf.setFont('helvetica','bold');
       pdf.setFontSize(46);
       pdf.setTextColor(WATERMARK_COLOR[0], WATERMARK_COLOR[1], WATERMARK_COLOR[2]);
-      pdf.text('SANT SALES & SERVICE', pageW/2, pageH/2, { align:'center', angle: -28 });
+      pdf.text('SANT SALES & SERVICE', pageW/2, centerY, { align:'center', angle: -28 });
       pdf.setTextColor(0,0,0);
     }
 
@@ -1624,8 +1651,7 @@ function buildInvoicePdf(inv){
     pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
     pdf.text('Authorised Signatory', pageW-margin, sigY, {align:'right'});
 
-    return pdf;
-  });
+    return { pages: pdf.internal.getNumberOfPages(), finalY: sigY };
 }
 
 function printInvoice(inv){
