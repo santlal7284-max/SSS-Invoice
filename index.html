@@ -1433,21 +1433,24 @@ function renderInvoicePdfContent(pdf, inv, opts){
     const gstOn = gst.gstOn !== false;
     const gstPctUsed = gstOn ? (gst.intra ? (gst.cgst + gst.sgst) : gst.igst) : 0;
 
-    // Professional watermark: centered on the actual invoice content span,
-    // with a restrained diagonal angle so it reads like a premium security
-    // watermark without overpowering invoice text.
+    // Premium diagonal security watermark: runs visually from the lower-left
+    // terms area toward the upper-right PAN area. Keep it dynamic so it stays
+    // correctly placed even when invoice content height changes.
+    let watermarkHeaderY = margin + 48;
     function drawWatermark(){
       if(opts.measureOnly) return;
-      let centerY = pageH / 2;
-      if(opts.singlePageContentEndY){
-        centerY = (margin + opts.singlePageContentEndY) / 2;
-      }
+      // On a single-page invoice, use the measured content height so the
+      // diagonal naturally travels from the lower-left terms area toward the
+      // upper-right PAN area instead of sitting in the middle of empty space.
+      const topY = watermarkHeaderY;
+      const bottomY = opts.singlePageContentEndY ? opts.singlePageContentEndY - 28 : pageH - 52;
+      const centerY = Math.max(topY + 30, Math.min(pageH - 35, (topY + bottomY) / 2));
       pdf.saveGraphicsState();
-      pdf.setGState(new pdf.GState({ opacity: 0.10 }));
+      pdf.setGState(new pdf.GState({ opacity: 0.075 }));
       pdf.setFont('helvetica','bold');
       pdf.setFontSize(27);
       pdf.setTextColor(AMBER[0], AMBER[1], AMBER[2]);
-      pdf.text('SANT SALES & SERVICE', pageW/2, centerY, { align:'center', angle: -18 });
+      pdf.text('SANT SALES & SERVICE', pageW/2, centerY, { align:'center', angle: -42 });
       pdf.restoreGraphicsState();
       pdf.setTextColor(0,0,0);
     }
@@ -1551,7 +1554,7 @@ function renderInvoicePdfContent(pdf, inv, opts){
       }
     }
 
-    // ---- Totals: clean two-column table for professional print/PDF output ----
+    // ---- Totals: compact two-column table for professional print/PDF output ----
     ensureSpace(30);
     const totalsRows = [];
     totalsRows.push(['Taxable Value'+(inv.totals.discountPct>0?' (before discount)':''), fmt(inv.totals.rawTaxable ?? inv.totals.taxable)]);
@@ -1571,11 +1574,11 @@ function renderInvoicePdfContent(pdf, inv, opts){
     pdf.autoTable({
       body: totalsRows,
       startY: y,
-      margin: { left: pageW - margin - 82, right: margin },
-      tableWidth: 82,
+      margin: { left: pageW - margin - 68, right: margin },
+      tableWidth: 68,
       theme: 'grid',
-      styles: { font:'helvetica', fontSize:8.8, cellPadding:{top:2.2,right:3,bottom:2.2,left:3}, lineColor:GRAY_BORDER, lineWidth:0.15, textColor:[0,0,0] },
-      columnStyles: { 0:{cellWidth:58}, 1:{cellWidth:24, halign:'right'} },
+      styles: { font:'helvetica', fontSize:8.2, cellPadding:{top:1.6,right:2.4,bottom:1.6,left:2.4}, lineColor:GRAY_BORDER, lineWidth:0.15, textColor:[0,0,0] },
+      columnStyles: { 0:{cellWidth:47}, 1:{cellWidth:21, halign:'right'} },
       didParseCell: function(data){
         if(data.section==='body' && data.row.index===totalsRows.length-1){
           data.cell.styles.fontStyle='bold';
@@ -1589,11 +1592,11 @@ function renderInvoicePdfContent(pdf, inv, opts){
     pdf.autoTable({
       body: [['Grand Total', 'Rs. '+fmt(inv.totals.rounded)]],
       startY: y,
-      margin: { left: pageW - margin - 82, right: margin },
-      tableWidth: 82,
+      margin: { left: pageW - margin - 68, right: margin },
+      tableWidth: 68,
       theme: 'grid',
-      styles: { font:'helvetica', fontSize:10.2, fontStyle:'bold', cellPadding:{top:3,right:3,bottom:3,left:3}, lineColor:NAVY, lineWidth:0.35, textColor:NAVY },
-      columnStyles: { 0:{cellWidth:58}, 1:{cellWidth:24, halign:'right'} },
+      styles: { font:'helvetica', fontSize:9.3, fontStyle:'bold', cellPadding:{top:2.2,right:2.4,bottom:2.2,left:2.4}, lineColor:NAVY, lineWidth:0.35, textColor:NAVY },
+      columnStyles: { 0:{cellWidth:47}, 1:{cellWidth:21, halign:'right'} },
       didParseCell: function(data){ data.cell.styles.fillColor = [247,248,250]; }
     });
     y = pdf.lastAutoTable.finalY + 4;
