@@ -1437,7 +1437,6 @@ function renderInvoicePdfContent(pdf, inv, opts){
     const AMBER = [200,134,42];
     const NAVY_PALE = [237,241,246];
     const GRAY_BORDER = [153,153,153];
-    const WATERMARK_COLOR = [224,211,185];
 
     const gst = inv.totals.gst;
     const gstOn = gst.gstOn !== false;
@@ -1454,10 +1453,13 @@ function renderInvoicePdfContent(pdf, inv, opts){
       if(opts.singlePageContentEndY){
         centerY = (margin + opts.singlePageContentEndY) / 2;
       }
+      pdf.saveGraphicsState();
+      pdf.setGState(new pdf.GState({ opacity: 0.13 }));
       pdf.setFont('helvetica','bold');
-      pdf.setFontSize(46);
-      pdf.setTextColor(WATERMARK_COLOR[0], WATERMARK_COLOR[1], WATERMARK_COLOR[2]);
+      pdf.setFontSize(30);
+      pdf.setTextColor(AMBER[0], AMBER[1], AMBER[2]);
       pdf.text('SANT SALES & SERVICE', pageW/2, centerY, { align:'center', angle: -28 });
+      pdf.restoreGraphicsState();
       pdf.setTextColor(0,0,0);
     }
 
