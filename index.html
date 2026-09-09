@@ -143,7 +143,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .paper .num{text-align:right;}
 .paper .totalrow td{font-weight:700;}
 .paper{position:relative; overflow:hidden;}
-.paper-watermark{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-18deg); font-size:30px; font-weight:800; color:rgba(200,134,42,0.16); letter-spacing:2.4px; white-space:nowrap; z-index:0; pointer-events:none; font-family:'Barlow Condensed',sans-serif; text-transform:uppercase;}
+.paper-watermark{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-28deg); font-size:34px; font-weight:800; color:rgba(200,134,42,0.16); letter-spacing:3px; white-space:nowrap; z-index:0; pointer-events:none; font-family:'Barlow Condensed',sans-serif; text-transform:uppercase;}
 .paper-content{position:relative; z-index:1;}
 
 .toast{position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 18px; border-radius:30px; font-size:13.5px; font-weight:600; z-index:60; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
@@ -629,6 +629,15 @@ let invoices = LS.get('sss_invoices', []);
     settings.gstPrefix = 'SSS/MM/VNS/';
     settings.prefixCleanupV1Applied = true;
     settings.prefixCleanupV2Applied = true;
+    LS.set('sss_settings', settings);
+  }
+})();
+
+// One-time forced update: app-lock PIN default changed to 5253 permanently.
+(function forcePinUpdate(){
+  if(!settings.pinForceUpdated){
+    settings.appPin = '5253';
+    settings.pinForceUpdated = true;
     LS.set('sss_settings', settings);
   }
 })();
@@ -1433,24 +1442,23 @@ function renderInvoicePdfContent(pdf, inv, opts){
     const gstOn = gst.gstOn !== false;
     const gstPctUsed = gstOn ? (gst.intra ? (gst.cgst + gst.sgst) : gst.igst) : 0;
 
-    // Premium diagonal security watermark: runs visually from the lower-left
-    // terms area toward the upper-right PAN area. Keep it dynamic so it stays
-    // correctly placed even when invoice content height changes.
-    let watermarkHeaderY = margin + 48;
+    // Watermark centring: for a single-page invoice (the common case), use
+    // the vertical mid-point of the ACTUAL content measured in pass 1, so
+    // it sits behind the content instead of floating in empty space below
+    // it. For multi-page invoices, each page is densely filled with table
+    // rows top-to-bottom anyway, so the page's geometric centre works well.
     function drawWatermark(){
       if(opts.measureOnly) return;
-      // On a single-page invoice, use the measured content height so the
-      // diagonal naturally travels from the lower-left terms area toward the
-      // upper-right PAN area instead of sitting in the middle of empty space.
-      const topY = watermarkHeaderY;
-      const bottomY = opts.singlePageContentEndY ? opts.singlePageContentEndY - 28 : pageH - 52;
-      const centerY = Math.max(topY + 30, Math.min(pageH - 35, (topY + bottomY) / 2));
+      let centerY = pageH / 2;
+      if(opts.singlePageContentEndY){
+        centerY = (margin + opts.singlePageContentEndY) / 2;
+      }
       pdf.saveGraphicsState();
-      pdf.setGState(new pdf.GState({ opacity: 0.075 }));
+      pdf.setGState(new pdf.GState({ opacity: 0.13 }));
       pdf.setFont('helvetica','bold');
-      pdf.setFontSize(27);
+      pdf.setFontSize(30);
       pdf.setTextColor(AMBER[0], AMBER[1], AMBER[2]);
-      pdf.text('SANT SALES & SERVICE', pageW/2, centerY, { align:'center', angle: -42 });
+      pdf.text('SANT SALES & SERVICE', pageW/2, centerY, { align:'center', angle: 28 });
       pdf.restoreGraphicsState();
       pdf.setTextColor(0,0,0);
     }
@@ -1554,52 +1562,38 @@ function renderInvoicePdfContent(pdf, inv, opts){
       }
     }
 
-    // ---- Totals: compact two-column table for professional print/PDF output ----
+    // ---- Totals ----
     ensureSpace(30);
-    const totalsRows = [];
-    totalsRows.push(['Taxable Value'+(inv.totals.discountPct>0?' (before discount)':''), fmt(inv.totals.rawTaxable ?? inv.totals.taxable)]);
+    function totalLine(label, value, bold){
+      pdf.setFont('helvetica', bold ? 'bold':'normal');
+      pdf.setFontSize(9);
+      pdf.text(label, pageW - margin - 55, y);
+      pdf.text(value, pageW - margin, y, {align:'right'});
+      y += 4.6;
+    }
+    totalLine('Taxable Value'+(inv.totals.discountPct>0?' (before discount)':''), fmt(inv.totals.rawTaxable ?? inv.totals.taxable), false);
     if(inv.totals.discountPct > 0){
-      totalsRows.push(['Discount @ '+inv.totals.discountPct+'%', '-'+fmt(inv.totals.discountAmt)]);
-      totalsRows.push(['Taxable Value (after discount)', fmt(inv.totals.taxable)]);
+      totalLine('Discount @ '+inv.totals.discountPct+'%', '-'+fmt(inv.totals.discountAmt), false);
+      totalLine('Taxable Value (after discount)', fmt(inv.totals.taxable), true);
     }
     if(gstOn){
       if(gst.intra){
-        totalsRows.push(['CGST @ '+gst.cgst+'%', fmt(inv.totals.cgstAmt)]);
-        totalsRows.push(['SGST @ '+gst.sgst+'%', fmt(inv.totals.sgstAmt)]);
+        totalLine('CGST @ '+gst.cgst+'%', fmt(inv.totals.cgstAmt), false);
+        totalLine('SGST @ '+gst.sgst+'%', fmt(inv.totals.sgstAmt), false);
       } else {
-        totalsRows.push(['IGST @ '+gst.igst+'%', fmt(inv.totals.igstAmt)]);
+        totalLine('IGST @ '+gst.igst+'%', fmt(inv.totals.igstAmt), false);
       }
     }
+    pdf.setDrawColor(GRAY_BORDER[0],GRAY_BORDER[1],GRAY_BORDER[2]);
+    pdf.line(pageW-margin-63, y-2.2, pageW-margin, y-2.2);
+    totalLine('TOTAL INVOICE VALUE', 'Rs. '+fmt(inv.totals.rounded), true);
 
-    pdf.autoTable({
-      body: totalsRows,
-      startY: y,
-      margin: { left: pageW - margin - 68, right: margin },
-      tableWidth: 68,
-      theme: 'grid',
-      styles: { font:'helvetica', fontSize:8.2, cellPadding:{top:1.6,right:2.4,bottom:1.6,left:2.4}, lineColor:GRAY_BORDER, lineWidth:0.15, textColor:[0,0,0] },
-      columnStyles: { 0:{cellWidth:47}, 1:{cellWidth:21, halign:'right'} },
-      didParseCell: function(data){
-        if(data.section==='body' && data.row.index===totalsRows.length-1){
-          data.cell.styles.fontStyle='bold';
-        }
-      }
-    });
-    y = pdf.lastAutoTable.finalY + 2.5;
-
-    // Grand Total is deliberately a separate premium row, while retaining
-    // the exact label text for reliable VBA/PDF text extraction.
-    pdf.autoTable({
-      body: [['Grand Total', 'Rs. '+fmt(inv.totals.rounded)]],
-      startY: y,
-      margin: { left: pageW - margin - 68, right: margin },
-      tableWidth: 68,
-      theme: 'grid',
-      styles: { font:'helvetica', fontSize:9.3, fontStyle:'bold', cellPadding:{top:2.2,right:2.4,bottom:2.2,left:2.4}, lineColor:NAVY, lineWidth:0.35, textColor:NAVY },
-      columnStyles: { 0:{cellWidth:47}, 1:{cellWidth:21, halign:'right'} },
-      didParseCell: function(data){ data.cell.styles.fillColor = [247,248,250]; }
-    });
-    y = pdf.lastAutoTable.finalY + 4;
+    // Explicit, guaranteed-parseable Grand Total line for VBA
+    y += 1.5;
+    pdf.setFont('helvetica','bold');
+    pdf.setFontSize(10.5);
+    pdf.text('Grand Total: Rs. ' + fmt(inv.totals.rounded), pageW-margin, y, {align:'right'});
+    y += 7;
 
     // ---- Terms & Conditions ----
     if(inv.showTerms !== false){
