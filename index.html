@@ -1440,10 +1440,12 @@ function renderInvoicePdfContent(pdf, inv, opts){
     // rows top-to-bottom anyway, so the page's geometric centre works well.
     function drawWatermark(){
       if(opts.measureOnly) return;
-      let centerY = pageH / 2;
+      const WATERMARK_Y_OFFSET = 38.1; // 1.5 inch, shifts watermark down the page
+      let centerY = pageH / 2 + WATERMARK_Y_OFFSET;
       if(opts.singlePageContentEndY){
-        centerY = (margin + opts.singlePageContentEndY) / 2;
+        centerY = (margin + opts.singlePageContentEndY) / 2 + WATERMARK_Y_OFFSET;
       }
+      centerY = Math.min(centerY, pageH - margin - 10);
       pdf.saveGraphicsState();
       pdf.setGState(new pdf.GState({ opacity: 0.13 }));
       pdf.setFont('helvetica','bold');
