@@ -143,7 +143,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .paper .num{text-align:right;}
 .paper .totalrow td{font-weight:700;}
 .paper{position:relative; overflow:hidden;}
-.paper-watermark{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-28deg); font-size:34px; font-weight:800; color:rgba(200,134,42,0.16); letter-spacing:3px; white-space:nowrap; z-index:0; pointer-events:none; font-family:'Barlow Condensed',sans-serif; text-transform:uppercase;}
+.paper-watermark{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(28deg); font-size:34px; font-weight:800; color:rgba(200,134,42,0.16); letter-spacing:3px; white-space:nowrap; z-index:0; pointer-events:none; font-family:'Barlow Condensed',sans-serif; text-transform:uppercase;}
 .paper-content{position:relative; z-index:1;}
 
 .toast{position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 18px; border-radius:30px; font-size:13.5px; font-weight:600; z-index:60; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
@@ -629,15 +629,6 @@ let invoices = LS.get('sss_invoices', []);
     settings.gstPrefix = 'SSS/MM/VNS/';
     settings.prefixCleanupV1Applied = true;
     settings.prefixCleanupV2Applied = true;
-    LS.set('sss_settings', settings);
-  }
-})();
-
-// One-time forced update: app-lock PIN default changed to 5253 permanently.
-(function forcePinUpdate(){
-  if(!settings.pinForceUpdated){
-    settings.appPin = '5253';
-    settings.pinForceUpdated = true;
     LS.set('sss_settings', settings);
   }
 })();
@@ -1419,11 +1410,12 @@ function buildInvoicePdf(inv){
     const measureDoc = new jsPDF('p', 'mm', 'a4');
     const measured = renderInvoicePdfContent(measureDoc, inv, { measureOnly: true });
 
-    // Pass 2 (real): draw the watermark centred on the item table + totals
-    // block measured above (matching the app's design) — it naturally
-    // shifts as the table has more or fewer rows.
+    // Pass 2 (real): draw the watermark centred on the ACTUAL content span
+    // measured above — instead of the page's geometric centre, which for a
+    // short invoice lands the watermark alone in the blank space below the
+    // content, looking out of place.
     const pdf = new jsPDF('p', 'mm', 'a4');
-    renderInvoicePdfContent(pdf, inv, { measureOnly: false, tableCenterY: measured.pages === 1 ? measured.tableCenterY : null });
+    renderInvoicePdfContent(pdf, inv, { measureOnly: false, singlePageContentEndY: measured.pages === 1 ? measured.finalY : null });
     return pdf;
   });
 }
@@ -1442,16 +1434,15 @@ function renderInvoicePdfContent(pdf, inv, opts){
     const gstPctUsed = gstOn ? (gst.intra ? (gst.cgst + gst.sgst) : gst.igst) : 0;
 
     // Watermark centring: for a single-page invoice (the common case), use
-    // the vertical mid-point of the item TABLE + TOTALS block specifically
-    // (measured in pass 1) — this is where the reference design keeps it,
-    // and it naturally shifts up/down as the table grows or shrinks. For
-    // multi-page invoices, each page is densely filled with table rows
-    // top-to-bottom anyway, so the page's geometric centre works well.
+    // the vertical mid-point of the ACTUAL content measured in pass 1, so
+    // it sits behind the content instead of floating in empty space below
+    // it. For multi-page invoices, each page is densely filled with table
+    // rows top-to-bottom anyway, so the page's geometric centre works well.
     function drawWatermark(){
       if(opts.measureOnly) return;
       let centerY = pageH / 2;
-      if(opts.tableCenterY){
-        centerY = opts.tableCenterY;
+      if(opts.singlePageContentEndY){
+        centerY = (margin + opts.singlePageContentEndY) / 2;
       }
       pdf.saveGraphicsState();
       pdf.setGState(new pdf.GState({ opacity: 0.13 }));
@@ -1526,7 +1517,6 @@ function renderInvoicePdfContent(pdf, inv, opts){
     pdf.text('Date: ' + (inv.date||''), rightX, rightY, {align:'right'}); rightY += 4.3;
 
     y = Math.max(leftY, rightY) + 3;
-    const tableStartY = y;
 
     // ---- Items table (real text cells, auto-paginates with repeating header) ----
     const head = [['Sr','Description','HSN','Qty','Rate','Taxable']];
@@ -1563,39 +1553,54 @@ function renderInvoicePdfContent(pdf, inv, opts){
       }
     }
 
-    // ---- Totals ----
+    // ---- Totals (bordered table, matching the item table's look) ----
     ensureSpace(30);
-    function totalLine(label, value, bold){
-      pdf.setFont('helvetica', bold ? 'bold':'normal');
-      pdf.setFontSize(9);
-      pdf.text(label, pageW - margin - 55, y);
-      pdf.text(value, pageW - margin, y, {align:'right'});
-      y += 4.6;
-    }
-    totalLine('Taxable Value'+(inv.totals.discountPct>0?' (before discount)':''), fmt(inv.totals.rawTaxable ?? inv.totals.taxable), false);
+    const totalRows = [];
+    totalRows.push([
+      'Taxable Value'+(inv.totals.discountPct>0?' (before discount)':''),
+      { content: fmt(inv.totals.rawTaxable ?? inv.totals.taxable), styles:{halign:'right'} }
+    ]);
     if(inv.totals.discountPct > 0){
-      totalLine('Discount @ '+inv.totals.discountPct+'%', '-'+fmt(inv.totals.discountAmt), false);
-      totalLine('Taxable Value (after discount)', fmt(inv.totals.taxable), true);
+      totalRows.push(['Discount @ '+inv.totals.discountPct+'%', { content:'-'+fmt(inv.totals.discountAmt), styles:{halign:'right'} }]);
+      totalRows.push([
+        { content:'Taxable Value (after discount)', styles:{fontStyle:'bold'} },
+        { content: fmt(inv.totals.taxable), styles:{fontStyle:'bold', halign:'right'} }
+      ]);
     }
     if(gstOn){
       if(gst.intra){
-        totalLine('CGST @ '+gst.cgst+'%', fmt(inv.totals.cgstAmt), false);
-        totalLine('SGST @ '+gst.sgst+'%', fmt(inv.totals.sgstAmt), false);
+        totalRows.push(['CGST @ '+gst.cgst+'%', { content: fmt(inv.totals.cgstAmt), styles:{halign:'right'} }]);
+        totalRows.push(['SGST @ '+gst.sgst+'%', { content: fmt(inv.totals.sgstAmt), styles:{halign:'right'} }]);
       } else {
-        totalLine('IGST @ '+gst.igst+'%', fmt(inv.totals.igstAmt), false);
+        totalRows.push(['IGST @ '+gst.igst+'%', { content: fmt(inv.totals.igstAmt), styles:{halign:'right'} }]);
       }
     }
-    pdf.setDrawColor(GRAY_BORDER[0],GRAY_BORDER[1],GRAY_BORDER[2]);
-    pdf.line(pageW-margin-63, y-2.2, pageW-margin, y-2.2);
-    totalLine('TOTAL INVOICE VALUE', 'Rs. '+fmt(inv.totals.rounded), true);
+    totalRows.push([
+      { content:'TOTAL INVOICE VALUE', styles:{fontStyle:'bold'} },
+      { content:'Rs. '+fmt(inv.totals.rounded), styles:{fontStyle:'bold', halign:'right'} }
+    ]);
+    // Kept as ONE contiguous "Grand Total: Rs. X" text string (spanning both
+    // columns) so the existing VBA macro that searches the PDF's extracted
+    // text for this exact label can still find and parse it unchanged.
+    totalRows.push([
+      { content:'Grand Total: Rs. ' + fmt(inv.totals.rounded), colSpan:2, styles:{fontStyle:'bold', fontSize:10.5, halign:'right'} }
+    ]);
 
-    // Explicit, guaranteed-parseable Grand Total line for VBA
-    y += 1.5;
-    pdf.setFont('helvetica','bold');
-    pdf.setFontSize(10.5);
-    pdf.text('Grand Total: Rs. ' + fmt(inv.totals.rounded), pageW-margin, y, {align:'right'});
-    const totalsEndY = y;
-    y += 7;
+    const totalsTableWidth = 90;
+    pdf.autoTable({
+      body: totalRows,
+      startY: y,
+      theme: 'grid',
+      tableWidth: totalsTableWidth,
+      margin: { left: pageW - margin - totalsTableWidth, right: margin, bottom: margin },
+      styles: { font:'helvetica', fontSize: 9, cellPadding: 1.8, lineColor: GRAY_BORDER, lineWidth: 0.15, textColor: [0,0,0] },
+      columnStyles: {
+        0: { cellWidth: totalsTableWidth - 35, halign:'left' },
+        1: { cellWidth: 35, halign:'right' }
+      },
+      didDrawPage: function(){ drawWatermark(); }
+    });
+    y = pdf.lastAutoTable.finalY + 7;
 
     // ---- Terms & Conditions ----
     if(inv.showTerms !== false){
@@ -1655,7 +1660,7 @@ function renderInvoicePdfContent(pdf, inv, opts){
     pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
     pdf.text('Authorised Signatory', pageW-margin, sigY, {align:'right'});
 
-    return { pages: pdf.internal.getNumberOfPages(), finalY: sigY, tableCenterY: (tableStartY + totalsEndY) / 2 };
+    return { pages: pdf.internal.getNumberOfPages(), finalY: sigY };
 }
 
 function printInvoice(inv){
