@@ -1419,12 +1419,11 @@ function buildInvoicePdf(inv){
     const measureDoc = new jsPDF('p', 'mm', 'a4');
     const measured = renderInvoicePdfContent(measureDoc, inv, { measureOnly: true });
 
-    // Pass 2 (real): draw the watermark centred on the ACTUAL content span
-    // measured above — instead of the page's geometric centre, which for a
-    // short invoice lands the watermark alone in the blank space below the
-    // content, looking out of place.
+    // Pass 2 (real): draw the watermark centred on the item table + totals
+    // block measured above (matching the app's design) — it naturally
+    // shifts as the table has more or fewer rows.
     const pdf = new jsPDF('p', 'mm', 'a4');
-    renderInvoicePdfContent(pdf, inv, { measureOnly: false, singlePageContentEndY: measured.pages === 1 ? measured.finalY : null });
+    renderInvoicePdfContent(pdf, inv, { measureOnly: false, tableCenterY: measured.pages === 1 ? measured.tableCenterY : null });
     return pdf;
   });
 }
@@ -1443,15 +1442,16 @@ function renderInvoicePdfContent(pdf, inv, opts){
     const gstPctUsed = gstOn ? (gst.intra ? (gst.cgst + gst.sgst) : gst.igst) : 0;
 
     // Watermark centring: for a single-page invoice (the common case), use
-    // the vertical mid-point of the ACTUAL content measured in pass 1, so
-    // it sits behind the content instead of floating in empty space below
-    // it. For multi-page invoices, each page is densely filled with table
-    // rows top-to-bottom anyway, so the page's geometric centre works well.
+    // the vertical mid-point of the item TABLE + TOTALS block specifically
+    // (measured in pass 1) — this is where the reference design keeps it,
+    // and it naturally shifts up/down as the table grows or shrinks. For
+    // multi-page invoices, each page is densely filled with table rows
+    // top-to-bottom anyway, so the page's geometric centre works well.
     function drawWatermark(){
       if(opts.measureOnly) return;
       let centerY = pageH / 2;
-      if(opts.singlePageContentEndY){
-        centerY = (margin + opts.singlePageContentEndY) / 2;
+      if(opts.tableCenterY){
+        centerY = opts.tableCenterY;
       }
       pdf.saveGraphicsState();
       pdf.setGState(new pdf.GState({ opacity: 0.13 }));
@@ -1526,6 +1526,7 @@ function renderInvoicePdfContent(pdf, inv, opts){
     pdf.text('Date: ' + (inv.date||''), rightX, rightY, {align:'right'}); rightY += 4.3;
 
     y = Math.max(leftY, rightY) + 3;
+    const tableStartY = y;
 
     // ---- Items table (real text cells, auto-paginates with repeating header) ----
     const head = [['Sr','Description','HSN','Qty','Rate','Taxable']];
@@ -1593,6 +1594,7 @@ function renderInvoicePdfContent(pdf, inv, opts){
     pdf.setFont('helvetica','bold');
     pdf.setFontSize(10.5);
     pdf.text('Grand Total: Rs. ' + fmt(inv.totals.rounded), pageW-margin, y, {align:'right'});
+    const totalsEndY = y;
     y += 7;
 
     // ---- Terms & Conditions ----
@@ -1653,7 +1655,7 @@ function renderInvoicePdfContent(pdf, inv, opts){
     pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
     pdf.text('Authorised Signatory', pageW-margin, sigY, {align:'right'});
 
-    return { pages: pdf.internal.getNumberOfPages(), finalY: sigY };
+    return { pages: pdf.internal.getNumberOfPages(), finalY: sigY, tableCenterY: (tableStartY + totalsEndY) / 2 };
 }
 
 function printInvoice(inv){
