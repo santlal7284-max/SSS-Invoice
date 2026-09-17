@@ -338,7 +338,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
         <div class="field"><label>GST Invoice Prefix</label><input id="setGstPrefix" placeholder="SSS/MM/VNS/"></div>
         <div class="field"><label>GST Invoice Next No.</label><input id="setGstNextNum" type="number"></div>
       </div>
-      <p style="font-size:12px; color:var(--text-dim); margin:-4px 0 0;">Write <b>MM</b> where the month should go (e.g. SSS/MM/TM/) — it auto-switches every 1st of the month (08 for Aug, 09 for Sep...). On 1 April 2027, the prefix will automatically switch to the new format (SS/MM/26-27/01 for Invoice, SSS/MM/26-27/01 for GST) and bill numbers will reset to 1 — this happens once, automatically, and nothing changes before then.</p>
+      <p style="font-size:12px; color:var(--text-dim); margin:-4px 0 0;">Write <b>MM</b> where the month should go (e.g. SSS/MM/TM/) — it auto-switches every 1st of the month (08 for Aug, 09 for Sep...). On 1 April 2027, the prefix will automatically switch to the new format (SS/26-27/001 for Invoice, SSS/26-27/001 for GST) — this happens once, automatically, nothing changes before then. From then on, every 1 April: the GST series resets to 001 for the new year, while the Invoice (non-GST) series keeps counting up continuously — only its year text changes.</p>
       <button class="btn btn-primary btn-block" id="saveSettingsBtn">Save Settings</button>
     </div>
 
@@ -513,7 +513,9 @@ function currentMonthMM(){
   return String(new Date().getMonth() + 1).padStart(2, '0');
 }
 function padSeq(n){
-  return String(n).padStart(2, '0');
+  // 3-digit (001, 002...) once the new post-1-April-2027 format is active;
+  // 2-digit for the current format, unchanged.
+  return settings.prefixFormatV2Applied ? String(n).padStart(3, '0') : String(n).padStart(2, '0');
 }
 function currentFY(){
   const now = new Date();
@@ -561,6 +563,12 @@ let invoices = LS.get('sss_invoices', []);
 // classification onto each invoice NOW, using the prefix pattern as it
 // stood at the START of this session — BEFORE the migrations below change
 // it — so old bills never get misclassified after any format switch.
+// Deferred by one tick: these one-time checks (a couple scan the whole
+// invoice history) used to run synchronously before the PIN pad's own
+// click handler was wired up, which could make the very first PIN digit
+// feel laggy right when the app opens. Deferring them lets the browser
+// paint and become responsive first.
+setTimeout(function(){
 (function backfillInvoiceTypes(){
   let changed = false;
   const gstRegexNow = prefixToRegex(settings.gstPrefix);
@@ -577,8 +585,10 @@ let invoices = LS.get('sss_invoices', []);
 // is already in History — never lower than that, no matter what the saved
 // counter currently says. Runs every load; only ever moves the number
 // forward, never backward, so a manually-advanced counter is respected.
-// Scoped to the CURRENT financial year only, so old high numbers from a
-// previous year never override a fresh 1 April reset.
+// GST numbering is scoped to the CURRENT financial year only (it resets
+// each 1 April), so old high numbers from a previous year never override
+// a fresh reset. Normal Invoice numbering is NOT FY-scoped — it counts
+// continuously across every financial year, so ALL history counts there.
 (function reconcileNextNumbersWithHistory(){
   function extractSeqNumber(invoiceNo){
     if(!invoiceNo) return 0;
@@ -597,11 +607,11 @@ let invoices = LS.get('sss_invoices', []);
   const thisFY = currentFY();
   let maxNormal = 0, maxGst = 0;
   invoices.forEach(inv=>{
-    if(fyOfDate(inv.date) !== thisFY) return; // different financial year — doesn't count
-    const n = extractSeqNumber(inv.invoiceNo);
     const type = (inv.type === 'gst' || inv.type === 'normal') ? inv.type : 'normal';
+    if(type === 'gst' && fyOfDate(inv.date) !== thisFY) return; // GST: different financial year — doesn't count
+    const n = extractSeqNumber(inv.invoiceNo);
     if(type === 'gst'){ if(n > maxGst) maxGst = n; }
-    else{ if(n > maxNormal) maxNormal = n; }
+    else{ if(n > maxNormal) maxNormal = n; } // Normal: counts across all financial years
   });
   const histNextNormal = maxNormal + 1;
   const histNextGst = maxGst + 1;
@@ -625,7 +635,7 @@ let invoices = LS.get('sss_invoices', []);
 // 2027, leaving some devices with a mangled prefix (e.g. "SSS/FY/MM/TM/").
 // Reset both prefixes back to the correct current format exactly once.
 (function cleanupPrematureFY(){
-  if(!settings.prefixCleanupV2Applied){
+  if(!settings.prefixCleanupV2Applied && !settings.prefixFormatV2Applied){
     settings.prefix = 'SSS/MM/TM/';
     settings.gstPrefix = 'SSS/MM/VNS/';
     settings.prefixCleanupV1Applied = true;
@@ -654,12 +664,14 @@ let invoices = LS.get('sss_invoices', []);
 (function scheduledPrefixFormatUpgrade(){
   const upgradeDate = new Date(2027, 3, 1); // 1 April 2027
   if(!settings.prefixFormatV2Applied && new Date() >= upgradeDate){
-    settings.prefix = 'SS/MM/FY/';
-    settings.gstPrefix = 'SSS/MM/FY/';
+    settings.prefix = 'SS/FY/';
+    settings.gstPrefix = 'SSS/FY/';
     settings.prefixFormatV2Applied = true;
     LS.set('sss_settings', settings);
   }
 })();
+}, 0);
+
 
 /* ---- Financial-year rollover: auto-reset bill numbers to 1 on 1 April ----
    Guarded by a Firebase transaction so that if several devices open the
@@ -678,10 +690,12 @@ if(settings.lastKnownFY === null || settings.lastKnownFY === undefined){
 let pendingFYReset = (settings.lastKnownFY !== currentFY());
 function applyLocalFYReset(){
   settings.lastKnownFY = currentFY();
-  settings.nextNum = 1;
-  settings.gstNextNum = 1;
+  settings.gstNextNum = 1; // GST invoice series resets every financial year
+  // settings.nextNum (Normal Invoice) is deliberately NOT reset — it keeps
+  // counting continuously across financial years; only the FY text in its
+  // prefix changes.
   LS.set('sss_settings', settings);
-  toast('📅 New financial year (' + currentFY() + ') — bill numbers reset to 1');
+  toast('📅 New financial year (' + currentFY() + ') — GST bill numbers reset to 1');
 }
 function tryCloudGuardedFYReset(){
   if(!cloudDb || !pendingFYReset) return;
@@ -692,8 +706,9 @@ function tryCloudGuardedFYReset(){
   }).then(result=>{
     pendingFYReset = false;
     if(result.committed){
-      // This device won the race — it performs the real reset for everyone
-      cloudDb.ref('counters/normal').set(1);
+      // This device won the race — it performs the real reset for everyone.
+      // Only the GST counter resets; the Normal Invoice counter is left
+      // untouched so it keeps counting continuously across financial years.
       cloudDb.ref('counters/gst').set(1);
     }
     applyLocalFYReset();
@@ -729,7 +744,7 @@ function allParts(){
   const custom = customParts.map(r => ({ code:r[0], hsn:r[1], cat:r[2], desc:r[3], fbasic:r[4], cbasic:r[5], custom:true }));
   return custom.concat(base);
 }
-let PARTS_CACHE = allParts();
+let PARTS_CACHE = []; // populated just below, deferred so it doesn't block the PIN pad
 function refreshParts(){ PARTS_CACHE = allParts(); }
 
 function findPart(code){
@@ -1146,7 +1161,7 @@ function resetInvoiceForm(){
   document.getElementById('invoiceNo').value = autoInvoiceNo;
   document.getElementById('invoiceDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('invoiceDiscount').value = '';
-  document.getElementById('gstToggle').value = 'with';
+  document.getElementById('gstToggle').value = invoiceMode === 'gst' ? 'with' : 'without';
   document.getElementById('showTermsToggle').checked = true;
   currentItems = [newItem()];
   editingIndex = null;
@@ -1313,6 +1328,30 @@ const LOGO_INALSA = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYE
 const LOGO_VENUS = 'data:image/jpeg;base64,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';
 
 function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
+function numberToWordsIndian(num){
+  num = Math.round(num);
+  if(num === 0) return 'Zero Rupees Only';
+  const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function twoDigits(n){
+    if(n < 20) return ones[n];
+    return tens[Math.floor(n/10)] + (n%10 ? ' ' + ones[n%10] : '');
+  }
+  function threeDigits(n){
+    if(n < 100) return twoDigits(n);
+    return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' ' + twoDigits(n%100) : '');
+  }
+  let crore = Math.floor(num / 10000000); num %= 10000000;
+  let lakh = Math.floor(num / 100000); num %= 100000;
+  let thousand = Math.floor(num / 1000); num %= 1000;
+  let hundred = num;
+  const parts = [];
+  if(crore) parts.push(threeDigits(crore) + ' Crore');
+  if(lakh) parts.push(threeDigits(lakh) + ' Lakh');
+  if(thousand) parts.push(threeDigits(thousand) + ' Thousand');
+  if(hundred) parts.push(threeDigits(hundred));
+  return (parts.join(' ') || 'Zero') + ' Rupees Only';
+}
 
 function invoiceHtml(inv){
   const gst = inv.totals.gst;
@@ -1363,6 +1402,7 @@ function invoiceHtml(inv){
         <tr class="totalrow"><td colspan="5" class="num">TOTAL INVOICE VALUE</td><td class="num">₹${fmt(inv.totals.rounded)}</td></tr>
       </tfoot>
     </table>
+    <div style="font-size:10.5px; font-style:italic; color:#444; margin-top:4px;"><b>Amount in Words:</b> ${esc(numberToWordsIndian(inv.totals.rounded))}</div>
     ${inv.showTerms !== false ? `<div style="margin-top:14px; font-size:10px; color:#555; border-top:1px dashed #bbb; padding-top:6px; line-height:1.5;">
       <b>Terms &amp; Conditions:</b> Spare parts carry a warranty of 3 months from the date of this invoice. Service charges are valid for a period of 1 month from the date of service. Warranty is applicable only against manufacturing defects and does not cover physical damage, misuse, or issues arising from unauthorised repairs.
     </div>` : ''}
@@ -1671,7 +1711,14 @@ function renderInvoicePdfContent(pdf, inv, opts){
     pdf.setFontSize(10.5);
     pdf.text('Grand Total: Rs. ' + fmt(inv.totals.rounded), pageW-margin, y, {align:'right'});
     const totalsEndY = y;
-    y += 7;
+    y += 6;
+    pdf.setFont('helvetica','italic');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(60,60,60);
+    const wordsLines = pdf.splitTextToSize('Amount in Words: ' + numberToWordsIndian(inv.totals.rounded), contentW);
+    pdf.text(wordsLines, pageW-margin, y, {align:'right'});
+    pdf.setTextColor(0,0,0);
+    y += wordsLines.length * 3.6 + 3;
 
     // ---- Terms & Conditions ----
     if(inv.showTerms !== false){
@@ -2232,8 +2279,15 @@ document.getElementById('saveAppPinBtn').addEventListener('click', ()=>{
 });
 
 /* ===================== Init ===================== */
-renderPartList();
-resetInvoiceForm();
+// Building the full ~12,000-item price list and doing the first render
+// is the single heaviest thing this app does at launch. Deferring it
+// (same reasoning as above) keeps the PIN screen snappy; by the time a
+// person finishes entering their code, this has long since finished.
+setTimeout(function(){
+  PARTS_CACHE = allParts();
+  renderPartList();
+  resetInvoiceForm();
+}, 0);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
