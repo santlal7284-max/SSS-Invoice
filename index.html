@@ -1538,7 +1538,7 @@ function buildInvoicePdf(inv){
     // Pass 2 (real): draw the watermark centred on the item table + totals
     // block measured above (matching the app's design) — it naturally
     // shifts as the table has more or fewer rows.
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdf = new jsPDF({ orientation:'p', unit:'mm', format:'a4', compress:true });
     renderInvoicePdfContent(pdf, inv, { measureOnly: false, tableCenterY: measured.pages === 1 ? measured.tableCenterY : null });
     return pdf;
   });
@@ -1584,8 +1584,8 @@ function renderInvoicePdfContent(pdf, inv, opts){
 
     // ---- Header: logos either side, title centred ----
     const logoW = 24, logoH = 13;
-    try{ pdf.addImage(LOGO_INALSA, 'JPEG', margin, y, logoW, logoH); }catch(e){}
-    try{ pdf.addImage(LOGO_VENUS, 'JPEG', pageW - margin - logoW, y, logoW, logoH); }catch(e){}
+    try{ pdf.addImage(LOGO_INALSA, 'JPEG', margin, y, logoW, logoH, undefined, 'MEDIUM'); }catch(e){}
+    try{ pdf.addImage(LOGO_VENUS, 'JPEG', pageW - margin - logoW, y, logoW, logoH, undefined, 'MEDIUM'); }catch(e){}
     pdf.setFont('helvetica','bold');
     pdf.setFontSize(15);
     pdf.setTextColor(NAVY[0],NAVY[1],NAVY[2]);
@@ -1680,7 +1680,7 @@ function renderInvoicePdfContent(pdf, inv, opts){
     }
 
     // ---- Totals ----
-    ensureSpace(30);
+    ensureSpace(38);
     function totalLine(label, value, bold){
       pdf.setFont('helvetica', bold ? 'bold':'normal');
       pdf.setFontSize(9);
@@ -1688,10 +1688,9 @@ function renderInvoicePdfContent(pdf, inv, opts){
       pdf.text(value, pageW - margin, y, {align:'right'});
       y += 4.6;
     }
-    totalLine('Taxable Value'+(inv.totals.discountPct>0?' (before discount)':''), fmt(inv.totals.rawTaxable ?? inv.totals.taxable), false);
     if(inv.totals.discountPct > 0){
+      totalLine('Taxable Value (before discount)', fmt(inv.totals.rawTaxable ?? inv.totals.taxable), false);
       totalLine('Discount @ '+inv.totals.discountPct+'%', '-'+fmt(inv.totals.discountAmt), false);
-      totalLine('Taxable Value (after discount)', fmt(inv.totals.taxable), true);
     }
     if(gstOn){
       if(gst.intra){
@@ -1701,22 +1700,43 @@ function renderInvoicePdfContent(pdf, inv, opts){
         totalLine('IGST @ '+gst.igst+'%', fmt(inv.totals.igstAmt), false);
       }
     }
-    pdf.setDrawColor(GRAY_BORDER[0],GRAY_BORDER[1],GRAY_BORDER[2]);
-    pdf.line(pageW-margin-63, y-2.2, pageW-margin, y-2.2);
-    totalLine('TOTAL INVOICE VALUE', 'Rs. '+fmt(inv.totals.rounded), true);
+    y += 1;
 
-    // Explicit, guaranteed-parseable Grand Total line for VBA
-    y += 1.5;
-    pdf.setFont('helvetica','bold');
-    pdf.setFontSize(10.5);
-    pdf.text('Grand Total: Rs. ' + fmt(inv.totals.rounded), pageW-margin, y, {align:'right'});
+    // Small bordered summary table: Taxable Value / TOTAL INVOICE VALUE / Grand Total
+    const boxRows = [
+      ['Taxable Value', fmt(inv.totals.taxable), false],
+      ['TOTAL INVOICE VALUE', 'Rs. ' + fmt(inv.totals.rounded), true],
+      ['Grand Total', 'Rs. ' + fmt(inv.totals.rounded), true]
+    ];
+    const boxW = 78, rowH = 6.2;
+    const boxX = pageW - margin - boxW, boxY = y;
+    pdf.setDrawColor(GRAY_BORDER[0],GRAY_BORDER[1],GRAY_BORDER[2]);
+    pdf.setLineWidth(0.25);
+    pdf.rect(boxX, boxY, boxW, rowH*3);
+    pdf.line(boxX, boxY+rowH, boxX+boxW, boxY+rowH);
+    pdf.line(boxX, boxY+rowH*2, boxX+boxW, boxY+rowH*2);
+    pdf.line(boxX+boxW*0.5, boxY, boxX+boxW*0.5, boxY+rowH*3);
+    boxRows.forEach((row, i)=>{
+      pdf.setFont('helvetica', row[2] ? 'bold' : 'normal');
+      pdf.setFontSize(row[2] ? 9.5 : 9);
+      const rowMidY = boxY + rowH*i + rowH/2 + 1.3;
+      pdf.text(row[0], boxX+2.5, rowMidY);
+      pdf.text(row[1], boxX+boxW-2.5, rowMidY, {align:'right'});
+    });
+    y = boxY + rowH*3;
     const totalsEndY = y;
     y += 6;
-    pdf.setFont('helvetica','italic');
+
+    // Amount in Words — left-aligned, full width, clearly above Terms & Conditions
+    pdf.setFont('helvetica','bold');
     pdf.setFontSize(8.5);
-    pdf.setTextColor(60,60,60);
-    const wordsLines = pdf.splitTextToSize('Amount in Words: ' + numberToWordsIndian(inv.totals.rounded), contentW);
-    pdf.text(wordsLines, pageW-margin, y, {align:'right'});
+    pdf.setTextColor(40,40,40);
+    const wordsLabel = 'Amount in Words: ';
+    const wordsLabelW = pdf.getTextWidth(wordsLabel);
+    pdf.text(wordsLabel, margin, y);
+    pdf.setFont('helvetica','italic');
+    const wordsLines = pdf.splitTextToSize(numberToWordsIndian(inv.totals.rounded), contentW - wordsLabelW);
+    pdf.text(wordsLines, margin + wordsLabelW, y);
     pdf.setTextColor(0,0,0);
     y += wordsLines.length * 3.6 + 3;
 
@@ -1769,7 +1789,7 @@ function renderInvoicePdfContent(pdf, inv, opts){
     if(sig){
       try{
         const sigFmt = sig.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
-        pdf.addImage(sig, sigFmt, pageW-margin-40, sigY+2, 32, 16);
+        pdf.addImage(sig, sigFmt, pageW-margin-40, sigY+2, 32, 16, undefined, 'MEDIUM');
       }catch(e){}
       sigY += 20;
     } else {
