@@ -276,6 +276,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
         <input id="showTermsToggle" type="checkbox" checked style="width:16px; height:16px; margin:0;">
         <span style="font-weight:600; font-size:13px;">Show warranty/terms note on this bill</span>
       </label>
+      <div class="field" id="warrantyMonthsField"><label>Spare Parts Warranty (months)</label><input id="warrantyMonths" type="number" min="0" step="1" value="3"></div>
       <div class="totals" id="invoiceTotals"></div>
     </div>
 
@@ -1163,6 +1164,7 @@ function resetInvoiceForm(){
   document.getElementById('invoiceDiscount').value = '';
   document.getElementById('gstToggle').value = invoiceMode === 'gst' ? 'with' : 'without';
   document.getElementById('showTermsToggle').checked = true;
+  document.getElementById('warrantyMonths').value = '3';
   currentItems = [newItem()];
   editingIndex = null;
   document.getElementById('saveInvoiceBtn').textContent = 'Save Invoice';
@@ -1246,6 +1248,7 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     items: validItems,
     totals,
     showTerms: document.getElementById('showTermsToggle').checked,
+    warrantyMonths: parseInt(document.getElementById('warrantyMonths').value) || 0,
     settingsSnapshot: {...settings}
   };
   if(editingIndex !== null){
@@ -1282,6 +1285,7 @@ function buildInvoiceFromForm(){
     },
     items: currentItems.filter(it=>it.desc && it.qty>0),
     showTerms: document.getElementById('showTermsToggle').checked,
+    warrantyMonths: parseInt(document.getElementById('warrantyMonths').value) || 0,
     totals
   };
 }
@@ -1404,7 +1408,7 @@ function invoiceHtml(inv){
     </table>
     <div style="font-size:10.5px; font-style:italic; color:#444; margin-top:4px;"><b>Amount in Words:</b> ${esc(numberToWordsIndian(inv.totals.rounded))}</div>
     ${inv.showTerms !== false ? `<div style="margin-top:14px; font-size:10px; color:#555; border-top:1px dashed #bbb; padding-top:6px; line-height:1.5;">
-      <b>Terms &amp; Conditions:</b> Spare parts carry a warranty of 3 months from the date of this invoice. Service charges are valid for a period of 1 month from the date of service. Warranty is applicable only against manufacturing defects and does not cover physical damage, misuse, or issues arising from unauthorised repairs.
+      <b>Terms &amp; Conditions:</b> Spare parts carry a warranty of ${(inv.warrantyMonths !== undefined && inv.warrantyMonths !== null) ? inv.warrantyMonths : 3} months from the date of this invoice. Service charges are valid for a period of 1 month from the date of service. Warranty is applicable only against manufacturing defects and does not cover physical damage, misuse, or issues arising from unauthorised repairs.
     </div>` : ''}
     <div style="margin-top:14px; display:flex; justify-content:${inv.type==='normal' ? 'flex-end' : 'space-between'}; align-items:flex-end; gap:12px;">
       ${inv.type==='normal' ? '' : `<div style="font-size:10.5px; border:1px solid #999; border-radius:4px; padding:8px 10px; line-height:1.55;">
@@ -1569,12 +1573,13 @@ function renderInvoicePdfContent(pdf, inv, opts){
       if(opts.tableCenterY){
         centerY = opts.tableCenterY;
       }
+      centerY += pageH * 0.10; // shift down 10% of the page
       pdf.saveGraphicsState();
       pdf.setGState(new pdf.GState({ opacity: 0.13 }));
       pdf.setFont('helvetica','bold');
       pdf.setFontSize(30);
       pdf.setTextColor(AMBER[0], AMBER[1], AMBER[2]);
-      pdf.text('SANT SALES & SERVICE', pageW/2, centerY, { align:'center', angle: 28 });
+      pdf.text('SANT SALES & SERVICE', pageW/2, centerY, { align:'center', angle: 18 }); // 10° more clockwise than before
       pdf.restoreGraphicsState();
       pdf.setTextColor(0,0,0);
     }
@@ -1679,51 +1684,40 @@ function renderInvoicePdfContent(pdf, inv, opts){
       }
     }
 
-    // ---- Totals ----
-    ensureSpace(38);
-    function totalLine(label, value, bold){
-      pdf.setFont('helvetica', bold ? 'bold':'normal');
-      pdf.setFontSize(9);
-      pdf.text(label, pageW - margin - 55, y);
-      pdf.text(value, pageW - margin, y, {align:'right'});
-      y += 4.6;
-    }
+    // ---- Totals (all in one bordered table) ----
+    ensureSpace(45);
+    const boxRows = [];
     if(inv.totals.discountPct > 0){
-      totalLine('Taxable Value (before discount)', fmt(inv.totals.rawTaxable ?? inv.totals.taxable), false);
-      totalLine('Discount @ '+inv.totals.discountPct+'%', '-'+fmt(inv.totals.discountAmt), false);
+      boxRows.push(['Taxable Value (before discount)', fmt(inv.totals.rawTaxable ?? inv.totals.taxable), false]);
+      boxRows.push(['Discount @ '+inv.totals.discountPct+'%', '-'+fmt(inv.totals.discountAmt), false]);
     }
     if(gstOn){
       if(gst.intra){
-        totalLine('CGST @ '+gst.cgst+'%', fmt(inv.totals.cgstAmt), false);
-        totalLine('SGST @ '+gst.sgst+'%', fmt(inv.totals.sgstAmt), false);
+        boxRows.push(['CGST @ '+gst.cgst+'%', fmt(inv.totals.cgstAmt), false]);
+        boxRows.push(['SGST @ '+gst.sgst+'%', fmt(inv.totals.sgstAmt), false]);
       } else {
-        totalLine('IGST @ '+gst.igst+'%', fmt(inv.totals.igstAmt), false);
+        boxRows.push(['IGST @ '+gst.igst+'%', fmt(inv.totals.igstAmt), false]);
       }
     }
-    y += 1;
+    boxRows.push(['Taxable Value', fmt(inv.totals.taxable), false]);
+    boxRows.push(['TOTAL INVOICE VALUE', 'Rs. ' + fmt(inv.totals.rounded), true]);
+    boxRows.push(['Grand Total', 'Rs. ' + fmt(inv.totals.rounded), true]);
 
-    // Small bordered summary table: Taxable Value / TOTAL INVOICE VALUE / Grand Total
-    const boxRows = [
-      ['Taxable Value', fmt(inv.totals.taxable), false],
-      ['TOTAL INVOICE VALUE', 'Rs. ' + fmt(inv.totals.rounded), true],
-      ['Grand Total', 'Rs. ' + fmt(inv.totals.rounded), true]
-    ];
-    const boxW = 78, rowH = 6.2;
+    const boxW = 78, rowH = 7.2;
     const boxX = pageW - margin - boxW, boxY = y;
     pdf.setDrawColor(GRAY_BORDER[0],GRAY_BORDER[1],GRAY_BORDER[2]);
     pdf.setLineWidth(0.25);
-    pdf.rect(boxX, boxY, boxW, rowH*3);
-    pdf.line(boxX, boxY+rowH, boxX+boxW, boxY+rowH);
-    pdf.line(boxX, boxY+rowH*2, boxX+boxW, boxY+rowH*2);
-    pdf.line(boxX+boxW*0.5, boxY, boxX+boxW*0.5, boxY+rowH*3);
+    pdf.rect(boxX, boxY, boxW, rowH*boxRows.length);
+    for(let i=1;i<boxRows.length;i++){ pdf.line(boxX, boxY+rowH*i, boxX+boxW, boxY+rowH*i); }
+    pdf.line(boxX+boxW*0.5, boxY, boxX+boxW*0.5, boxY+rowH*boxRows.length);
     boxRows.forEach((row, i)=>{
       pdf.setFont('helvetica', row[2] ? 'bold' : 'normal');
-      pdf.setFontSize(row[2] ? 9.5 : 9);
-      const rowMidY = boxY + rowH*i + rowH/2 + 1.3;
+      pdf.setFontSize(row[2] ? 9.5 : 8.7);
+      const rowMidY = boxY + rowH*i + rowH/2 + 1.5; // vertically centred within the row, clear of both divider lines
       pdf.text(row[0], boxX+2.5, rowMidY);
       pdf.text(row[1], boxX+boxW-2.5, rowMidY, {align:'right'});
     });
-    y = boxY + rowH*3;
+    y = boxY + rowH*boxRows.length;
     const totalsEndY = y;
     y += 6;
 
@@ -1753,7 +1747,8 @@ function renderInvoicePdfContent(pdf, inv, opts){
       pdf.text('Terms & Conditions:', margin, y);
       const labelW = pdf.getTextWidth('Terms & Conditions: ');
       pdf.setFont('helvetica','normal');
-      const termsText = 'Spare parts carry a warranty of 3 months from the date of this invoice. Service charges are valid for a period of 1 month from the date of service. Warranty is applicable only against manufacturing defects and does not cover physical damage, misuse, or issues arising from unauthorised repairs.';
+      const warrantyMonths = (inv.warrantyMonths !== undefined && inv.warrantyMonths !== null) ? inv.warrantyMonths : 3;
+      const termsText = 'Spare parts carry a warranty of ' + warrantyMonths + ' months from the date of this invoice. Service charges are valid for a period of 1 month from the date of service. Warranty is applicable only against manufacturing defects and does not cover physical damage, misuse, or issues arising from unauthorised repairs.';
       const termsLines = pdf.splitTextToSize(termsText, contentW - labelW - 1);
       pdf.text(termsLines, margin + labelW + 1, y);
       y += termsLines.length * 3.2 + 4;
@@ -1993,6 +1988,7 @@ function loadInvoiceForEdit(idx){
   document.getElementById('invoiceDiscount').value = inv.totals.discountPct || '';
   document.getElementById('gstToggle').value = (inv.totals.gst && inv.totals.gst.gstOn===false) ? 'without' : 'with';
   document.getElementById('showTermsToggle').checked = inv.showTerms !== false;
+  document.getElementById('warrantyMonths').value = (inv.warrantyMonths !== undefined && inv.warrantyMonths !== null) ? inv.warrantyMonths : 3;
   currentItems = inv.items.map(it => ({...it}));
   renderItems();
   document.getElementById('saveInvoiceBtn').textContent = 'Update Invoice';
