@@ -312,11 +312,6 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
         <button class="hist-filter-btn active" data-filter="normal">Invoice</button>
         <button class="hist-filter-btn" data-filter="gst">GST Invoice</button>
       </div>
-      <select id="historySortBy" class="hist-dropdown-btn" aria-label="Sort by">
-        <option value="date_desc">Date (Newest first)</option>
-        <option value="amount_desc">Amount (High to Low)</option>
-        <option value="invoice_no">Invoice Number</option>
-      </select>
     </div>
     <div id="historyList"></div>
   </div>
@@ -566,6 +561,8 @@ function migrateAddFY(str){
 let overrides = LS.get('sss_price_overrides', {});     // {code: {fbasic, cbasic}}
 let customParts = LS.get('sss_custom_parts', []);       // [[code,hsn,cat,desc,fbasic,cbasic], ...]
 let invoices = LS.get('sss_invoices', []);
+// Older invoices use their creation id as a stable fallback sync timestamp.
+invoices.forEach(inv=>{ if(inv && !inv.updatedAt) inv.updatedAt = Number(inv.id) || Date.now(); });
 
 // One-time backfill: older saved invoices don't carry an explicit "type"
 // field — they were told apart from their invoiceNo prefix. Freeze that
@@ -1257,10 +1254,12 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     totals,
     showTerms: document.getElementById('showTermsToggle').checked,
     warrantyMonths: parseInt(document.getElementById('warrantyMonths').value) || 0,
-    settingsSnapshot: {...settings}
+    settingsSnapshot: {...settings},
+    updatedAt: Date.now()
   };
   if(editingIndex !== null){
     inv.id = invoices[editingIndex].id;
+    inv.updatedAt = Date.now();
     invoices[editingIndex] = inv;
     LS.set('sss_invoices', invoices);
     toast('✅ Invoice updated: ' + inv.invoiceNo);
@@ -1871,7 +1870,6 @@ function shareInvoice(inv){
 /* ===================== History view ===================== */
 let historyFilter = 'normal';
 let historySearchQuery = '';
-let historySortBy = 'date_desc';
 
 function invoiceTypeOf(inv){
   if(inv.type === 'gst' || inv.type === 'normal') return inv.type;
@@ -1918,15 +1916,10 @@ function renderHistorySummary(filtered){
 }
 
 function sortHistoryInvoices(list){
-  const arr = list.slice();
-  if(historySortBy === 'amount_desc'){
-    arr.sort((a,b)=> (b.inv.totals.rounded||0) - (a.inv.totals.rounded||0));
-  } else if(historySortBy === 'invoice_no'){
-    arr.sort((a,b)=> (a.inv.invoiceNo||'').localeCompare((b.inv.invoiceNo||''), undefined, {numeric:true, sensitivity:'base'}));
-  } else {
-    arr.sort((a,b)=> (b.inv.date||'').localeCompare(a.inv.date||''));
-  }
-  return arr;
+  // Always show the most recently CREATED bill first.
+  // New bills are inserted with unshift(), while id is the creation timestamp.
+  // Editing keeps the original id, so an edited old bill never jumps to the top.
+  return list.slice().sort((a,b)=> (Number(b.inv.id)||0) - (Number(a.inv.id)||0));
 }
 
 function renderHistory(){
@@ -1970,11 +1963,6 @@ function renderHistory(){
 
 document.getElementById('historySearch').addEventListener('input', (e)=>{
   historySearchQuery = e.target.value;
-  renderHistory();
-});
-
-document.getElementById('historySortBy').addEventListener('change', (e)=>{
-  historySortBy = e.target.value;
   renderHistory();
 });
 
@@ -2206,25 +2194,58 @@ function doPushToCloud(attempt){
   cloudSyncing = true;
   setCloudStatus('syncing');
   const updatedAt = new Date().toISOString();
-  cloudDb.ref('backup').set({
-    settings, overrides, customParts, invoices,
-    updatedAt, updatedBy: DEVICE_ID
-  }).then(()=>{
+
+  // Merge invoices inside a Firebase transaction instead of replacing the
+  // entire cloud array. This prevents an older copy on another device from
+  // overwriting a newer edit. Each invoice is compared by updatedAt.
+  cloudDb.ref('backup').transaction(current=>{
+    const base = current || {};
+    const remoteInvoices = Array.isArray(base.invoices) ? base.invoices : [];
+    const localInvoices = Array.isArray(invoices) ? invoices : [];
+    const byId = new Map();
+
+    remoteInvoices.forEach(inv=>{
+      if(inv && inv.id !== undefined && inv.id !== null) byId.set(String(inv.id), inv);
+    });
+    localInvoices.forEach(inv=>{
+      if(!inv || inv.id === undefined || inv.id === null) return;
+      const key = String(inv.id);
+      const remote = byId.get(key);
+      const localTime = Number(inv.updatedAt) || Number(inv.id) || 0;
+      const remoteTime = remote ? (Number(remote.updatedAt) || Number(remote.id) || 0) : -1;
+      if(!remote || localTime >= remoteTime) byId.set(key, inv);
+    });
+
+    const mergedInvoices = Array.from(byId.values()).sort((a,b)=>
+      (Number(b.id)||0) - (Number(a.id)||0)
+    );
+
+    return {
+      settings, overrides, customParts,
+      invoices: mergedInvoices,
+      updatedAt, updatedBy: DEVICE_ID
+    };
+  }).then(result=>{
     cloudSyncing = false;
     lastCloudUpdatedAt = updatedAt;
+    if(result && result.snapshot && result.snapshot.val()){
+      const merged = result.snapshot.val();
+      if(Array.isArray(merged.invoices)){
+        invoices = merged.invoices;
+        localStorage.setItem('sss_invoices', JSON.stringify(invoices));
+      }
+    }
     setCloudStatus('connected');
   }).catch(err=>{
     cloudSyncing = false;
     console.warn('Cloud save failed (attempt ' + (attempt+1) + ')', err);
     const nextAttempt = attempt + 1;
     if(nextAttempt <= 4){
-      // Background sync retry with exponential backoff
       setCloudStatus('syncing');
       setTimeout(()=>doPushToCloud(nextAttempt), Math.min(1500 * Math.pow(2, attempt), 15000));
     } else {
       setCloudStatus('offline');
       toast('⚠ Sync failed — saved on this device only, will retry later');
-      // one more slow background retry, keeps trying quietly without blocking the user
       setTimeout(()=>doPushToCloud(0), 30000);
     }
   });
