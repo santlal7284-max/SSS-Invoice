@@ -196,115 +196,6 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .lock-error{color:#F9A0A0; font-size:13px; height:18px; margin-top:12px; animation:fadeSlideIn .2s var(--ease);}
 .lock-shake{animation:shakeX .35s;}
 @keyframes shakeX{0%,100%{transform:translateX(0);} 20%{transform:translateX(-8px);} 40%{transform:translateX(8px);} 60%{transform:translateX(-6px);} 80%{transform:translateX(6px);}}
-
-/* ===== PREMIUM MOBILE UI REFRESH — visual only, no billing logic changes ===== */
-:root{
-  --navy:#0F2340;
-  --navy-light:#1D4270;
-  --navy-pale:#EEF4FB;
-  --amber:#FFB52E;
-  --amber-dark:#C98218;
-  --bg:#F5F7FB;
-  --surface:#FFFFFF;
-  --border:#E2E8F0;
-  --text:#14243A;
-  --text-dim:#64748B;
-  --green:#159B68;
-  --red:#D64545;
-  --radius:17px;
-  --shadow-sm:0 3px 12px rgba(15,35,64,.055);
-  --shadow-md:0 10px 28px rgba(15,35,64,.12);
-  --shadow-lg:0 16px 40px rgba(15,35,64,.16);
-}
-body{background:radial-gradient(circle at 50% -10%,#e9f1fc 0,#f5f7fb 34%,#f5f7fb 100%);}
-#app{background:transparent;}
-.topbar{
-  padding:15px 17px 14px;
-  background:linear-gradient(135deg,#0B1D35 0%,#12365D 55%,#1C4B78 100%);
-  box-shadow:0 7px 22px rgba(10,29,53,.22);
-  overflow:hidden;
-}
-.topbar:before{content:"";position:absolute;width:150px;height:150px;border-radius:50%;right:-55px;top:-85px;background:rgba(255,181,46,.12);pointer-events:none;}
-.topbar:after{content:"";position:absolute;width:95px;height:95px;border-radius:50%;left:-55px;bottom:-70px;background:rgba(255,255,255,.055);pointer-events:none;}
-.topbar .eyebrow,.topbar h1,.topbar .stripe{position:relative;z-index:1;}
-.topbar h1{font-size:27px;letter-spacing:.015em;text-shadow:0 2px 10px rgba(0,0,0,.18);}
-.topbar .eyebrow{font-size:10px;color:#FFD274;}
-.sync-badge{padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.08);backdrop-filter:blur(8px);}
-.topbar .stripe{height:4px;margin-top:11px;background:linear-gradient(90deg,#FFB52E 0%,rgba(255,181,46,.45) 38%,transparent 100%);}
-.view{padding:16px 14px 96px;}
-.view.active{animation:fadeSlideIn .24s var(--ease);}
-.card{
-  border:1px solid rgba(226,232,240,.95);
-  border-radius:18px;
-  padding:15px;
-  margin-bottom:13px;
-  box-shadow:var(--shadow-sm);
-  background:linear-gradient(180deg,#fff 0%,#fcfdff 100%);
-}
-.card h3{font-size:20px;margin:0 0 13px;display:flex;align-items:center;gap:8px;}
-.card h3:before{content:"";width:5px;height:19px;border-radius:8px;background:linear-gradient(180deg,var(--amber),#F39A1F);box-shadow:0 2px 7px rgba(255,181,46,.3);}
-.field label{font-size:11px;letter-spacing:.055em;color:#6B7B8F;margin-bottom:5px;}
-.field input,.field select,.searchbar input,.searchbar select{
-  min-height:44px;
-  border:1.5px solid #DCE4EE;
-  border-radius:11px;
-  background:#FBFCFE;
-  box-shadow:inset 0 1px 2px rgba(15,35,64,.025);
-}
-.field input:focus,.field select:focus,.searchbar input:focus,.searchbar select:focus{
-  border-color:#5A86B6;
-  box-shadow:0 0 0 3px rgba(90,134,182,.13);
-}
-.searchbar{gap:8px;margin-bottom:11px;position:sticky;top:0;z-index:8;padding:3px 0 7px;background:linear-gradient(180deg,var(--bg) 72%,rgba(245,247,251,0));}
-.searchbar input{padding:11px 13px 11px 40px;background:#fff;box-shadow:0 4px 14px rgba(15,35,64,.07);}
-#view-master .searchbar:before,#view-history .searchbar:before{content:"⌕";position:absolute;left:14px;top:12px;font-size:20px;color:#8A9AAF;z-index:2;font-weight:700;}
-.searchbar select{background:#fff;}
-.result-count{font-weight:600;font-size:11px;margin:1px 3px 9px;color:#7A899B;}
-.part-row{
-  border-radius:15px;padding:12px 13px;margin-bottom:9px;
-  border-color:#E2E8F0;background:#fff;box-shadow:0 4px 14px rgba(15,35,64,.055);
-}
-.part-row:active{transform:scale(.985);box-shadow:0 2px 7px rgba(15,35,64,.08);}
-.part-code{font-size:11px;padding:3px 7px;border-radius:999px;background:#FFF4DE;color:#A7650D;}
-.part-cat{font-size:9px;font-weight:700;}
-.part-desc{font-size:15px;margin:5px 0 9px;}
-.part-prices{background:#F8FAFD;border-radius:10px;padding:7px 8px;gap:9px;}
-.price-input{min-height:34px;border-radius:8px;background:#fff;}
-.loadmore{border-radius:11px;background:#fff;box-shadow:var(--shadow-sm);}
-.btn{min-height:44px;border-radius:11px;padding:11px 15px;font-size:14px;box-shadow:none;}
-.btn-primary{background:linear-gradient(135deg,#102B4D,#1D4A79);box-shadow:0 6px 14px rgba(15,35,64,.20);}
-.btn-primary:hover{background:linear-gradient(135deg,#14355D,#245B8D);}
-.btn-amber{background:linear-gradient(135deg,#FFB52E,#F39A1F);box-shadow:0 6px 14px rgba(243,154,31,.20);}
-.btn-outline{border:1.5px solid #D7E0EB;background:#fff;color:#173655;box-shadow:0 2px 7px rgba(15,35,64,.035);}
-.btn-outline:hover{background:#F2F6FB;border-color:#B9C8D9;}
-.btn-danger{border-color:#E7B0B0;background:#FFF8F8;}
-.item-card{border-radius:15px;padding:11px;background:linear-gradient(180deg,#fff,#F9FBFD);border-color:#DEE6F0;box-shadow:0 4px 13px rgba(15,35,64,.055);}
-.item-card .idx{background:linear-gradient(135deg,#102B4D,#1F527F);box-shadow:0 3px 8px rgba(15,35,64,.15);}
-.item-line-total{background:#F4F7FB;border-radius:9px;padding:6px 8px;}
-.totals{border-top:2px solid #173A61;background:#F8FAFD;border-radius:12px;padding:10px 12px;margin-top:12px;}
-.totals .grand{font-size:22px;color:#102B4D;border-top:1px solid #DCE4EE;padding-top:10px;}
-.hist-month-switcher{padding:3px 0;}
-.hist-month-switcher span{font-size:12px;color:#43576E;}
-.hist-month-switcher button{width:32px;height:32px;background:#F2F6FB;border-color:#D7E0EB;}
-.hist-filter{display:flex;gap:7px;margin:0 0 12px;padding:4px;background:#EAF0F7;border-radius:12px;}
-.hist-filter-btn{flex:1;border:0;background:transparent;border-radius:9px;padding:9px 8px;font:700 12px Inter,sans-serif;color:#708197;}
-.hist-filter-btn.active{background:#fff;color:#12365D;box-shadow:0 3px 9px rgba(15,35,64,.09);}
-.tabbar{padding:7px 5px calc(7px + env(safe-area-inset-bottom));background:rgba(10,29,53,.97);backdrop-filter:blur(14px);box-shadow:0 -7px 24px rgba(0,0,0,.14);}
-.tab{padding:8px 2px 7px;font-size:9.5px;color:#A8B8CA;}
-.tab .ic{font-size:19px;}
-.tab.active{color:#FFC04A;}
-.tab.active:after{content:"";width:24px;height:3px;border-radius:3px;background:#FFB52E;position:absolute;bottom:2px;box-shadow:0 0 9px rgba(255,181,46,.5);}
-.tab{position:relative;}
-.empty{padding:48px 20px;background:#fff;border:1px dashed #D9E2EC;border-radius:16px;}
-.badge{border-radius:999px;padding:4px 8px;}
-.review-card{border-radius:20px;box-shadow:var(--shadow-lg);border:1px solid #E2E8F0;}
-.review-overlay{backdrop-filter:blur(5px);background:rgba(8,23,42,.48);}
-.toast{border-radius:12px!important;box-shadow:0 10px 28px rgba(0,0,0,.18)!important;}
-.lock-overlay{background:radial-gradient(circle at 50% 15%,#1F4B77 0,#0B1D35 58%,#071523 100%)!important;}
-.lock-icon{filter:drop-shadow(0 8px 18px rgba(255,181,46,.2));}
-.pin-pad button{border-radius:15px!important;border:1px solid rgba(255,255,255,.10)!important;box-shadow:0 5px 15px rgba(0,0,0,.18)!important;}
-@media (min-width:700px){#app{max-width:560px;box-shadow:0 0 50px rgba(15,35,64,.10);}}
-
 </style>
 </head>
 <body>
@@ -1090,11 +981,9 @@ let editingIndex = null;
 
 function newItem(){ return {code:'', desc:'', hsn:'', qty:1, rate:0, manual:false, taxIncl:false}; }
 
-function itemTaxable(it, gstPctOverride){
-  const gstPct = Number.isFinite(Number(gstPctOverride)) ? Number(gstPctOverride) : (parseFloat(settings.gstRate)||18);
-  const qty = Number(it.qty)||0;
-  const rate = Number(it.rate)||0;
-  const amt = qty * rate;
+function itemTaxable(it){
+  const gstPct = parseFloat(settings.gstRate)||18;
+  const amt = (it.qty||0)*(it.rate||0);
   return it.taxIncl ? amt/(1+gstPct/100) : amt;
 }
 
@@ -1117,7 +1006,7 @@ function renderItems(){
   const box = document.getElementById('itemsContainer');
   box.innerHTML = '';
   currentItems.forEach((it, idx)=>{
-    const taxable = itemTaxable(it, computeGst().gstOn ? (computeGst().intra ? computeGst().cgst + computeGst().sgst : computeGst().igst) : 0);
+    const taxable = itemTaxable(it);
     const div = document.createElement('div');
     div.className = 'item-card';
     div.innerHTML = `
@@ -1220,7 +1109,7 @@ document.addEventListener('click', (e)=>{
 function renderTotals(){
   const gst = computeGst();
   let rawTaxable = 0;
-  currentItems.forEach(it=>{ rawTaxable += itemTaxable(it, gst.gstOn ? (gst.intra ? gst.cgst + gst.sgst : gst.igst) : 0); });
+  currentItems.forEach(it=>{ rawTaxable += itemTaxable(it); });
   const discountPct = parseFloat(document.getElementById('invoiceDiscount').value)||0;
   const discountAmt = rawTaxable * discountPct / 100;
   const taxable = rawTaxable - discountAmt;
@@ -1337,11 +1226,8 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
       else settings.nextNum = allocated + 1;
       numberWasAutoAllocated = true;
     }catch(e){
-      console.warn('Sequential lock unavailable; invoice not auto-numbered', e);
-      saveBtn.disabled = false;
-      saveBtn.textContent = 'Save Invoice';
-      alert('Cloud sync is not available right now. Automatic invoice numbering is paused to prevent duplicate numbers on the two mobiles. Please reconnect the internet and try again.');
-      return;
+      console.warn('Sequential lock unavailable, falling back to local numbering', e);
+      toast('⚠ Offline — number not multi-device protected this time');
     }
   }
 
@@ -1349,7 +1235,6 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
   const totals = renderTotals();
   const inv = {
     id: Date.now(),
-    updatedAt: new Date().toISOString(),
     invoiceNo: finalInvoiceNo,
     type: invoiceMode,
     date: document.getElementById('invoiceDate').value,
@@ -1478,7 +1363,8 @@ function invoiceHtml(inv){
   const gstPctUsed = gstOn ? (gst.intra ? (gst.cgst + gst.sgst) : gst.igst) : 0;
   let rows = '';
   inv.items.forEach((it,i)=>{
-    const tax = itemTaxable(it, gstPctUsed);
+    const amt = (it.qty||0)*(it.rate||0);
+    const tax = it.taxIncl ? amt/(1+gstPctUsed/100) : amt;
     rows += `<tr><td>${i+1}</td><td>${esc(it.desc)}${it.code?' <span style=\"color:#777\">('+esc(it.code)+')</span>':''}</td><td>${esc(it.hsn||'')}</td><td class="num">${it.qty}</td><td class="num">${fmt(it.rate)}</td><td class="num">${fmt(tax)}</td></tr>`;
   });
   return `
@@ -1815,6 +1701,7 @@ function renderInvoicePdfContent(pdf, inv, opts){
     }
     boxRows.push(['Taxable Value', fmt(inv.totals.taxable), false]);
     boxRows.push(['TOTAL INVOICE VALUE', 'Rs. ' + fmt(inv.totals.rounded), true]);
+    boxRows.push(['Grand Total', 'Rs. ' + fmt(inv.totals.rounded), true]);
 
     const boxW = 78, rowH = 7.2;
     const boxX = pageW - margin - boxW, boxY = y;
@@ -2033,15 +1920,6 @@ function renderHistory(){
     box.innerHTML = '<div class="empty"><div class="ic">🔍</div>'+(searching ? 'No invoices match your search.' : 'No invoices for '+formatYm(historySummaryYm)+'.')+'</div>';
     return;
   }
-  // History: show the most recently created invoice first.
-  // Date is the primary order; invoice number is used as a tie-breaker.
-  filtered.sort((a,b)=>{
-    const dateA = String(a.inv && a.inv.date || '');
-    const dateB = String(b.inv && b.inv.date || '');
-    const byDate = dateB.localeCompare(dateA);
-    if(byDate !== 0) return byDate;
-    return String(b.inv && b.inv.invoiceNo || '').localeCompare(String(a.inv && a.inv.invoiceNo || ''), undefined, {numeric:true});
-  });
   box.innerHTML = '';
   filtered.forEach(({inv, idx})=>{
     const type = invoiceTypeOf(inv);
@@ -2248,51 +2126,11 @@ function initCloudSync(){
   }catch(e){ console.warn('Cloud sync unavailable', e); setCloudStatus('offline'); }
 }
 
-function backupLocalInvoices(reason){
-  try{
-    if(!Array.isArray(invoices) || !invoices.length) return;
-    const key = 'sss_invoice_safety_backups';
-    const old = JSON.parse(localStorage.getItem(key) || '[]');
-    const snapshot = {
-      savedAt: new Date().toISOString(),
-      reason: reason || 'cloud-sync',
-      count: invoices.length,
-      invoices: invoices
-    };
-    const backups = [snapshot, ...old].slice(0, 5);
-    localStorage.setItem(key, JSON.stringify(backups));
-  }catch(e){ console.warn('Invoice safety backup failed', e); }
-}
-
-function mergeInvoices(localList, cloudList){
-  const byId = {};
-  (Array.isArray(localList) ? localList : []).forEach(inv=>{
-    if(inv && inv.id !== undefined && inv.id !== null) byId[String(inv.id)] = inv;
-  });
-  (Array.isArray(cloudList) ? cloudList : []).forEach(inv=>{
-    if(!inv || inv.id === undefined || inv.id === null) return;
-    const k = String(inv.id);
-    const local = byId[k];
-    if(!local){ byId[k] = inv; return; }
-    const lt = Date.parse(local.updatedAt || '') || 0;
-    const ct = Date.parse(inv.updatedAt || '') || 0;
-    if(ct >= lt) byId[k] = inv;
-  });
-  return Object.values(byId).sort((a,b)=>{
-    const ta = Number(a && a.id) || 0, tb = Number(b && b.id) || 0;
-    return ta - tb;
-  });
-}
-
 function applyCloudData(data){
-  // Preserve the current local invoice history before accepting cloud data.
-  backupLocalInvoices('before-cloud-apply');
   if(data.settings) settings = data.settings;
   if(data.overrides) overrides = data.overrides;
   if(data.customParts) customParts = data.customParts;
-  // Never blindly replace local invoice history with the cloud copy. Merge by
-  // invoice id so a bill that exists only on this phone is preserved.
-  if(Array.isArray(data.invoices)) invoices = mergeInvoices(invoices, data.invoices);
+  if(data.invoices) invoices = data.invoices;
   localStorage.setItem('sss_settings', JSON.stringify(settings));
   localStorage.setItem('sss_price_overrides', JSON.stringify(overrides));
   localStorage.setItem('sss_custom_parts', JSON.stringify(customParts));
@@ -2334,48 +2172,25 @@ function doPushToCloud(attempt){
   cloudSyncing = true;
   setCloudStatus('syncing');
   const updatedAt = new Date().toISOString();
-  // Merge at the Firebase server instead of replacing the entire shared
-  // object. This prevents Mobile A and Mobile B from overwriting each
-  // other's newly-created invoices when both devices sync close together.
-  cloudDb.ref('backup').transaction(current=>{
-    current = current || {};
-    const cloudInvoices = Array.isArray(current.invoices) ? current.invoices : [];
-    const localInvoices = Array.isArray(invoices) ? invoices : [];
-    const byId = {};
-    cloudInvoices.forEach(inv=>{ if(inv && inv.id != null) byId[String(inv.id)] = inv; });
-    localInvoices.forEach(inv=>{
-      if(!inv || inv.id == null) return;
-      const key = String(inv.id);
-      const old = byId[key];
-      const localTime = inv.updatedAt || '';
-      const oldTime = old && old.updatedAt ? old.updatedAt : '';
-      if(!old || localTime >= oldTime) byId[key] = inv;
-    });
-    const mergedInvoices = Object.keys(byId).map(k=>byId[k]);
-    return {
-      settings, overrides, customParts, invoices: mergedInvoices,
-      updatedAt, updatedBy: DEVICE_ID
-    };
-  }).then(result=>{
+  cloudDb.ref('backup').set({
+    settings, overrides, customParts, invoices,
+    updatedAt, updatedBy: DEVICE_ID
+  }).then(()=>{
     cloudSyncing = false;
     lastCloudUpdatedAt = updatedAt;
-    // Adopt the server-merged invoice list locally so both phones converge.
-    const data = result.snapshot.val();
-    if(data && Array.isArray(data.invoices)){
-      invoices = data.invoices;
-      localStorage.setItem('sss_invoices', JSON.stringify(invoices));
-    }
     setCloudStatus('connected');
   }).catch(err=>{
     cloudSyncing = false;
     console.warn('Cloud save failed (attempt ' + (attempt+1) + ')', err);
     const nextAttempt = attempt + 1;
     if(nextAttempt <= 4){
+      // Background sync retry with exponential backoff
       setCloudStatus('syncing');
       setTimeout(()=>doPushToCloud(nextAttempt), Math.min(1500 * Math.pow(2, attempt), 15000));
     } else {
       setCloudStatus('offline');
       toast('⚠ Sync failed — saved on this device only, will retry later');
+      // one more slow background retry, keeps trying quietly without blocking the user
       setTimeout(()=>doPushToCloud(0), 30000);
     }
   });
@@ -2407,7 +2222,7 @@ function nextInvoiceNumber(mode){
   const key = mode === 'gst' ? 'gst' : 'normal';
   const localFallback = mode === 'gst' ? (parseInt(settings.gstNextNum)||1) : (parseInt(settings.nextNum)||1);
   if(!cloudDb){
-    return Promise.reject(new Error('Cloud unavailable; automatic numbering requires sync'));
+    return Promise.resolve(localFallback);
   }
   return cloudDb.ref('counters/' + key).transaction(current=>{
     const base = (current === null || current === undefined) ? localFallback : Math.max(current, localFallback);
