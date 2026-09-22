@@ -62,11 +62,14 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .searchbar{display:flex; gap:8px; margin-bottom:10px;}
 .searchbar input{flex:1; padding:11px 12px; border-radius:8px; border:1.5px solid var(--border); background:#fff;}
 .searchbar select{padding:11px 8px; border-radius:8px; border:1.5px solid var(--border); background:#fff; max-width:130px;}
-.hist-month-switcher{display:flex; align-items:center; justify-content:center; gap:10px;}
-.hist-month-switcher button{width:26px; height:26px; border-radius:50%; border:1.5px solid var(--border); background:var(--navy-pale); color:var(--navy); font-size:15px; font-weight:800; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0; transition:background .15s var(--ease), opacity .15s var(--ease), transform .12s var(--ease);}
-.hist-month-switcher button:active{transform:scale(0.88);}
-.hist-month-switcher button:disabled{opacity:.3; cursor:default;}
-.hist-month-switcher span{font-size:11px; color:var(--text-dim); font-weight:800; text-transform:uppercase; letter-spacing:0.06em; min-width:112px; text-align:center;}
+.hist-controls-row{display:flex; gap:6px; align-items:stretch; margin-bottom:10px;}
+.hist-controls-row > *{flex:1; min-width:0;}
+.hist-dropdown-btn{padding:8px 6px; border-radius:8px; border:1.5px solid var(--border); background:var(--navy-pale); color:var(--navy); font-size:11.5px; font-weight:800; text-align:center; text-align-last:center; -moz-text-align-last:center; text-transform:uppercase; letter-spacing:0.02em; appearance:none; -webkit-appearance:none;}
+.hist-dropdown-btn:focus{outline:none; border-color:var(--amber);}
+.hist-shrink-btn{padding:8px 6px !important; font-size:11.5px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.hist-controls-row .hist-filter{margin-bottom:0; flex:1.3;}
+.hist-controls-row .hist-filter-btn{padding:7px 3px; font-size:11px;}
+.hist-controls-row select.hist-dropdown-btn{flex:1;}
 
 .result-count{font-size:12px; color:var(--text-dim); margin:2px 2px 8px;}
 
@@ -155,10 +158,6 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .hist-badge{display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:0.02em; margin-left:6px; vertical-align:middle;}
 .hist-badge.gst{background:rgba(200,134,42,0.15); color:#C8862A;}
 .hist-badge.normal{background:rgba(18,37,63,0.1); color:var(--navy);}
-.hist-sortbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 12px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
-.hist-sortbar label{font-size:13px;font-weight:800;color:var(--text-dim)}
-.hist-sortbar select{flex:1;max-width:235px;min-height:40px;padding:8px 34px 8px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text);font-weight:700;font-size:13px;outline:none}
-.hist-sortbar select:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,166,35,.15)}
 .hist-row{background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:12px; margin-bottom:8px;}
 .hist-row .top{display:flex; justify-content:space-between; font-weight:700; color:var(--navy);}
 .hist-row .sub{font-size:12px; color:var(--text-dim); margin-top:2px;}
@@ -296,30 +295,27 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
   <!-- HISTORY -->
   <div class="view" id="view-history">
     <div class="card" id="histSummaryCard" style="padding:14px 16px;">
-      <div class="hist-month-switcher">
-        <button type="button" id="histMonthPrev" aria-label="Previous month">‹</button>
-        <span id="histSummaryLabel">This Month</span>
-        <button type="button" id="histMonthNext" aria-label="Next month">›</button>
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:4px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
         <div style="font-size:22px; font-weight:800; color:var(--navy); font-family:'Barlow Condensed',sans-serif;" id="histSummaryAmt">₹0</div>
         <div style="font-size:12.5px; color:var(--text-dim); font-weight:600;" id="histSummaryCount">0 invoices</div>
       </div>
-      <button type="button" class="btn btn-outline btn-block" id="exportGstExcelBtn" style="margin-top:10px;">📊 Export GST Invoices to Excel (this month)</button>
+      <div class="hist-controls-row" style="margin-top:10px; margin-bottom:0;">
+        <select id="histMonthSelect" class="hist-dropdown-btn" aria-label="Select month"></select>
+        <button type="button" class="btn btn-outline hist-shrink-btn" id="exportGstExcelBtn" title="Export GST Invoices to Excel for selected month">📊 Export to Excel</button>
+      </div>
     </div>
     <div class="searchbar">
       <input type="text" id="historySearch" placeholder="Search name, mobile, or item…">
     </div>
-    <div class="hist-filter" id="historyFilter">
-      <button class="hist-filter-btn active" data-filter="normal">Invoice</button>
-      <button class="hist-filter-btn" data-filter="gst">GST Invoice</button>
-    </div>
-    <div class="hist-sortbar">
-      <label for="historySort">Sort by</label>
-      <select id="historySort" aria-label="Sort invoices">
-        <option value="date-desc" selected>Date (Newest first)</option>
-        <option value="amount-desc">Amount (High to Low)</option>
-        <option value="invoice-desc">Invoice Number</option>
+    <div class="hist-controls-row">
+      <div class="hist-filter" id="historyFilter">
+        <button class="hist-filter-btn active" data-filter="normal">Invoice</button>
+        <button class="hist-filter-btn" data-filter="gst">GST Invoice</button>
+      </div>
+      <select id="historySortBy" class="hist-dropdown-btn" aria-label="Sort by">
+        <option value="date_desc">Date (Newest first)</option>
+        <option value="amount_desc">Amount (High to Low)</option>
+        <option value="invoice_no">Invoice Number</option>
       </select>
     </div>
     <div id="historyList"></div>
@@ -1875,6 +1871,7 @@ function shareInvoice(inv){
 /* ===================== History view ===================== */
 let historyFilter = 'normal';
 let historySearchQuery = '';
+let historySortBy = 'date_desc';
 
 function invoiceTypeOf(inv){
   if(inv.type === 'gst' || inv.type === 'normal') return inv.type;
@@ -1889,74 +1886,78 @@ function invoiceMatchesSearch(inv, q){
   return matchesQuery(haystackParts.join(' '), q);
 }
 
-let historySort = 'date-desc';
 let historySummaryYm = new Date().toISOString().slice(0,7);
 function formatYm(ym){
   const [y,m] = ym.split('-').map(Number);
   return MONTH_NAMES[m-1] + ' ' + y;
 }
-function shiftHistoryMonth(delta){
-  const [y,m] = historySummaryYm.split('-').map(Number);
-  const d = new Date(y, m-1+delta, 1);
-  historySummaryYm = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-  renderHistory();
+function populateHistMonthOptions(){
+  const sel = document.getElementById('histMonthSelect');
+  const currentYm = new Date().toISOString().slice(0,7);
+  const yms = new Set([currentYm, historySummaryYm]);
+  invoices.forEach(inv=>{
+    const ym = (inv.date||'').slice(0,7);
+    if(ym && ym <= currentYm) yms.add(ym);
+  });
+  const sorted = Array.from(yms).sort().reverse();
+  const optionsHtml = sorted.map(ym=>'<option value="'+ym+'">'+esc(formatYm(ym))+'</option>').join('');
+  if(sel.innerHTML !== optionsHtml) sel.innerHTML = optionsHtml;
+  if(sel.value !== historySummaryYm) sel.value = historySummaryYm;
 }
-document.getElementById('histMonthPrev').addEventListener('click', ()=>shiftHistoryMonth(-1));
-document.getElementById('histMonthNext').addEventListener('click', ()=>shiftHistoryMonth(1));
+document.getElementById('histMonthSelect').addEventListener('change', (e)=>{
+  historySummaryYm = e.target.value;
+  renderHistory();
+});
 
 function renderHistorySummary(filtered){
   const monthInvoices = filtered.filter(({inv}) => (inv.date||'').slice(0,7) === historySummaryYm);
   const total = monthInvoices.reduce((s,{inv}) => s + (inv.totals.rounded||0), 0);
   document.getElementById('histSummaryAmt').textContent = '₹' + fmt(total);
   document.getElementById('histSummaryCount').textContent = monthInvoices.length + ' invoice' + (monthInvoices.length===1?'':'s');
-  document.getElementById('histSummaryLabel').textContent = formatYm(historySummaryYm);
-  const currentYm = new Date().toISOString().slice(0,7);
-  document.getElementById('histMonthNext').disabled = historySummaryYm >= currentYm;
+  populateHistMonthOptions();
 }
 
-function invoiceSortNumber(inv){
-  const raw = String((inv && inv.invoiceNo) || '');
-  const last = raw.split('/').pop().replace(/[^\d]/g,'');
-  const n = parseInt(last,10);
-  return Number.isFinite(n) ? n : 0;
-}
 function sortHistoryInvoices(list){
-  const arr=list.slice();
-  arr.sort((a,b)=>{
-    const A=a.inv,B=b.inv;
-    if(historySort==='amount-desc'){
-      const av=Number(A.totals&&A.totals.rounded)||0, bv=Number(B.totals&&B.totals.rounded)||0;
-      return bv-av || String(B.date||'').localeCompare(String(A.date||'')) || invoiceSortNumber(B)-invoiceSortNumber(A);
-    }
-    if(historySort==='invoice-desc'){
-      return invoiceSortNumber(B)-invoiceSortNumber(A) || String(B.invoiceNo||'').localeCompare(String(A.invoiceNo||'')) || String(B.date||'').localeCompare(String(A.date||''));
-    }
-    return String(B.date||'').localeCompare(String(A.date||'')) || invoiceSortNumber(B)-invoiceSortNumber(A) || String(B.invoiceNo||'').localeCompare(String(A.invoiceNo||''));
-  });
+  const arr = list.slice();
+  if(historySortBy === 'amount_desc'){
+    arr.sort((a,b)=> (b.inv.totals.rounded||0) - (a.inv.totals.rounded||0));
+  } else if(historySortBy === 'invoice_no'){
+    arr.sort((a,b)=> (a.inv.invoiceNo||'').localeCompare((b.inv.invoiceNo||''), undefined, {numeric:true, sensitivity:'base'}));
+  } else {
+    arr.sort((a,b)=> (b.inv.date||'').localeCompare(a.inv.date||''));
+  }
   return arr;
 }
+
 function renderHistory(){
-  const box=document.getElementById('historyList');
-  const q=historySearchQuery.trim();
-  const searching=q.length>0;
-  let filtered=[];
-  invoices.forEach((inv,idx)=>{
-    const typeOk=invoiceTypeOf(inv)===historyFilter;
-    const monthOk=searching || (inv.date||'').slice(0,7)===historySummaryYm;
-    if(typeOk&&monthOk&&invoiceMatchesSearch(inv,q)) filtered.push({inv,idx});
+  const box = document.getElementById('historyList');
+  const q = historySearchQuery.trim();
+  const searching = q.length > 0;
+  const filtered = [];
+  invoices.forEach((inv, idx)=>{
+    const typeOk = invoiceTypeOf(inv)===historyFilter;
+    const monthOk = searching || (inv.date||'').slice(0,7) === historySummaryYm;
+    if(typeOk && monthOk && invoiceMatchesSearch(inv, q)) filtered.push({inv, idx});
   });
   renderHistorySummary(invoices.map((inv,idx)=>({inv,idx})));
-  if(invoices.length===0){box.innerHTML='<div class="empty"><div class="ic">🧾</div>No invoices saved yet.</div>';return;}
-  if(filtered.length===0){box.innerHTML='<div class="empty"><div class="ic">🔍</div>'+(searching?'No invoices match your search.':'No invoices for '+formatYm(historySummaryYm)+'.')+'</div>';return;}
-  filtered=sortHistoryInvoices(filtered);
-  box.innerHTML='';
-  filtered.forEach(({inv,idx})=>{
-    const type=invoiceTypeOf(inv);
-    const badge=type==='gst'?'<span class="hist-badge gst">GST Invoice</span>':'<span class="hist-badge normal">Invoice</span>';
-    const div=document.createElement('div'); div.className='hist-row';
-    div.innerHTML=`
+  if(invoices.length===0){
+    box.innerHTML = '<div class="empty"><div class="ic">🧾</div>No invoices saved yet.</div>';
+    return;
+  }
+  if(filtered.length===0){
+    box.innerHTML = '<div class="empty"><div class="ic">🔍</div>'+(searching ? 'No invoices match your search.' : 'No invoices for '+formatYm(historySummaryYm)+'.')+'</div>';
+    return;
+  }
+  box.innerHTML = '';
+  const sortedFiltered = sortHistoryInvoices(filtered);
+  sortedFiltered.forEach(({inv, idx})=>{
+    const type = invoiceTypeOf(inv);
+    const badge = type==='gst' ? '<span class="hist-badge gst">GST Invoice</span>' : '<span class="hist-badge normal">Invoice</span>';
+    const div = document.createElement('div');
+    div.className = 'hist-row';
+    div.innerHTML = `
       <div class="top"><span>${esc(inv.invoiceNo)}${badge}</span><span>${esc(inv.date)}</span></div>
-      <div class="sub">${esc(inv.buyer.name)}${inv.buyer.mobile?' · '+esc(inv.buyer.mobile):''}</div>
+      <div class="sub">${esc(inv.buyer.name)}${inv.buyer.mobile ? ' · '+esc(inv.buyer.mobile) : ''}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
         <button class="btn btn-outline" data-view="${idx}">👁 View</button>
@@ -1972,17 +1973,17 @@ document.getElementById('historySearch').addEventListener('input', (e)=>{
   renderHistory();
 });
 
+document.getElementById('historySortBy').addEventListener('change', (e)=>{
+  historySortBy = e.target.value;
+  renderHistory();
+});
+
 document.getElementById('historyFilter').addEventListener('click', (e)=>{
   const btn = e.target.closest('[data-filter]');
   if(!btn) return;
   historyFilter = btn.dataset.filter;
   document.querySelectorAll('.hist-filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderHistory();
-});
-
-document.getElementById('historySort').addEventListener('change', (e)=>{
-  historySort=e.target.value;
   renderHistory();
 });
 
