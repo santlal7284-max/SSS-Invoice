@@ -155,6 +155,10 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .hist-badge{display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:0.02em; margin-left:6px; vertical-align:middle;}
 .hist-badge.gst{background:rgba(200,134,42,0.15); color:#C8862A;}
 .hist-badge.normal{background:rgba(18,37,63,0.1); color:var(--navy);}
+.hist-sortbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 12px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.hist-sortbar label{font-size:13px;font-weight:800;color:var(--text-dim)}
+.hist-sortbar select{flex:1;max-width:235px;min-height:40px;padding:8px 34px 8px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text);font-weight:700;font-size:13px;outline:none}
+.hist-sortbar select:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,166,35,.15)}
 .hist-row{background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:12px; margin-bottom:8px;}
 .hist-row .top{display:flex; justify-content:space-between; font-weight:700; color:var(--navy);}
 .hist-row .sub{font-size:12px; color:var(--text-dim); margin-top:2px;}
@@ -309,6 +313,14 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
     <div class="hist-filter" id="historyFilter">
       <button class="hist-filter-btn active" data-filter="normal">Invoice</button>
       <button class="hist-filter-btn" data-filter="gst">GST Invoice</button>
+    </div>
+    <div class="hist-sortbar">
+      <label for="historySort">Sort by</label>
+      <select id="historySort" aria-label="Sort invoices">
+        <option value="date-desc" selected>Date (Newest first)</option>
+        <option value="amount-desc">Amount (High to Low)</option>
+        <option value="invoice-desc">Invoice Number</option>
+      </select>
     </div>
     <div id="historyList"></div>
   </div>
@@ -1877,6 +1889,7 @@ function invoiceMatchesSearch(inv, q){
   return matchesQuery(haystackParts.join(' '), q);
 }
 
+let historySort = 'date-desc';
 let historySummaryYm = new Date().toISOString().slice(0,7);
 function formatYm(ym){
   const [y,m] = ym.split('-').map(Number);
@@ -1901,34 +1914,49 @@ function renderHistorySummary(filtered){
   document.getElementById('histMonthNext').disabled = historySummaryYm >= currentYm;
 }
 
+function invoiceSortNumber(inv){
+  const raw = String((inv && inv.invoiceNo) || '');
+  const last = raw.split('/').pop().replace(/[^\d]/g,'');
+  const n = parseInt(last,10);
+  return Number.isFinite(n) ? n : 0;
+}
+function sortHistoryInvoices(list){
+  const arr=list.slice();
+  arr.sort((a,b)=>{
+    const A=a.inv,B=b.inv;
+    if(historySort==='amount-desc'){
+      const av=Number(A.totals&&A.totals.rounded)||0, bv=Number(B.totals&&B.totals.rounded)||0;
+      return bv-av || String(B.date||'').localeCompare(String(A.date||'')) || invoiceSortNumber(B)-invoiceSortNumber(A);
+    }
+    if(historySort==='invoice-desc'){
+      return invoiceSortNumber(B)-invoiceSortNumber(A) || String(B.invoiceNo||'').localeCompare(String(A.invoiceNo||'')) || String(B.date||'').localeCompare(String(A.date||''));
+    }
+    return String(B.date||'').localeCompare(String(A.date||'')) || invoiceSortNumber(B)-invoiceSortNumber(A) || String(B.invoiceNo||'').localeCompare(String(A.invoiceNo||''));
+  });
+  return arr;
+}
 function renderHistory(){
-  const box = document.getElementById('historyList');
-  const q = historySearchQuery.trim();
-  const searching = q.length > 0;
-  const filtered = [];
-  invoices.forEach((inv, idx)=>{
-    const typeOk = invoiceTypeOf(inv)===historyFilter;
-    const monthOk = searching || (inv.date||'').slice(0,7) === historySummaryYm;
-    if(typeOk && monthOk && invoiceMatchesSearch(inv, q)) filtered.push({inv, idx});
+  const box=document.getElementById('historyList');
+  const q=historySearchQuery.trim();
+  const searching=q.length>0;
+  let filtered=[];
+  invoices.forEach((inv,idx)=>{
+    const typeOk=invoiceTypeOf(inv)===historyFilter;
+    const monthOk=searching || (inv.date||'').slice(0,7)===historySummaryYm;
+    if(typeOk&&monthOk&&invoiceMatchesSearch(inv,q)) filtered.push({inv,idx});
   });
   renderHistorySummary(invoices.map((inv,idx)=>({inv,idx})));
-  if(invoices.length===0){
-    box.innerHTML = '<div class="empty"><div class="ic">🧾</div>No invoices saved yet.</div>';
-    return;
-  }
-  if(filtered.length===0){
-    box.innerHTML = '<div class="empty"><div class="ic">🔍</div>'+(searching ? 'No invoices match your search.' : 'No invoices for '+formatYm(historySummaryYm)+'.')+'</div>';
-    return;
-  }
-  box.innerHTML = '';
-  filtered.forEach(({inv, idx})=>{
-    const type = invoiceTypeOf(inv);
-    const badge = type==='gst' ? '<span class="hist-badge gst">GST Invoice</span>' : '<span class="hist-badge normal">Invoice</span>';
-    const div = document.createElement('div');
-    div.className = 'hist-row';
-    div.innerHTML = `
+  if(invoices.length===0){box.innerHTML='<div class="empty"><div class="ic">🧾</div>No invoices saved yet.</div>';return;}
+  if(filtered.length===0){box.innerHTML='<div class="empty"><div class="ic">🔍</div>'+(searching?'No invoices match your search.':'No invoices for '+formatYm(historySummaryYm)+'.')+'</div>';return;}
+  filtered=sortHistoryInvoices(filtered);
+  box.innerHTML='';
+  filtered.forEach(({inv,idx})=>{
+    const type=invoiceTypeOf(inv);
+    const badge=type==='gst'?'<span class="hist-badge gst">GST Invoice</span>':'<span class="hist-badge normal">Invoice</span>';
+    const div=document.createElement('div'); div.className='hist-row';
+    div.innerHTML=`
       <div class="top"><span>${esc(inv.invoiceNo)}${badge}</span><span>${esc(inv.date)}</span></div>
-      <div class="sub">${esc(inv.buyer.name)}${inv.buyer.mobile ? ' · '+esc(inv.buyer.mobile) : ''}</div>
+      <div class="sub">${esc(inv.buyer.name)}${inv.buyer.mobile?' · '+esc(inv.buyer.mobile):''}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
         <button class="btn btn-outline" data-view="${idx}">👁 View</button>
@@ -1950,6 +1978,11 @@ document.getElementById('historyFilter').addEventListener('click', (e)=>{
   historyFilter = btn.dataset.filter;
   document.querySelectorAll('.hist-filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  renderHistory();
+});
+
+document.getElementById('historySort').addEventListener('change', (e)=>{
+  historySort=e.target.value;
   renderHistory();
 });
 
