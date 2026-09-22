@@ -886,17 +886,12 @@ history.pushState({view:'master'}, '', location.pathname + location.search);
 function switchToView(v, activeBtn, pushState){
   const modal = document.getElementById('pdfViewModal');
   if(modal.style.display === 'flex'){ closePdfViewModal(); }
-  // "Invoice" and "GST Invoice" tabs both point at data-view="invoice", so the
-  // view name alone can't tell them apart on browser/Android back — save the
-  // exact button's id too, so back navigation restores the SAME tab highlight
-  // the user actually opened (not always the first "invoice" tab it finds).
-  const btnId = activeBtn ? activeBtn.id : (document.querySelector('.tab[data-view="'+v+'"]')||{}).id;
   if(pushState !== false && v !== currentViewName){
-    history.pushState({view:v, btnId}, '', location.pathname + location.search + '#' + v);
+    history.pushState({view:v}, '', location.pathname + location.search + '#' + v);
   }
   currentViewName = v;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  const btn = activeBtn || (btnId && document.getElementById(btnId)) || document.querySelector('.tab[data-view="'+v+'"]');
+  const btn = activeBtn || document.querySelector('.tab[data-view="'+v+'"]');
   if(btn) btn.classList.add('active');
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
@@ -925,7 +920,7 @@ window.addEventListener('popstate', (e)=>{
     return;
   }
   const v = (e.state && e.state.view) || 'master';
-  const btn = (e.state && e.state.btnId && document.getElementById(e.state.btnId)) || document.querySelector('.tab[data-view="'+v+'"]');
+  const btn = document.querySelector('.tab[data-view="'+v+'"]');
   switchToView(v, btn, false);
 });
 
@@ -1212,9 +1207,7 @@ document.getElementById('itemsContainer').addEventListener('change', (e)=>{
 
 function updateLineTotal(i){
   const el = document.querySelectorAll('.item-line-total b')[i];
-  const gst = computeGst();
-  const gstPctOverride = gst.gstOn ? (gst.intra ? gst.cgst + gst.sgst : gst.igst) : 0;
-  if(el) el.textContent = '₹' + itemTaxable(currentItems[i], gstPctOverride).toFixed(2);
+  if(el) el.textContent = '₹' + itemTaxable(currentItems[i]).toFixed(2);
 }
 
 // close autocomplete list on outside click
@@ -2040,6 +2033,15 @@ function renderHistory(){
     box.innerHTML = '<div class="empty"><div class="ic">🔍</div>'+(searching ? 'No invoices match your search.' : 'No invoices for '+formatYm(historySummaryYm)+'.')+'</div>';
     return;
   }
+  // History: show the most recently created invoice first.
+  // Date is the primary order; invoice number is used as a tie-breaker.
+  filtered.sort((a,b)=>{
+    const dateA = String(a.inv && a.inv.date || '');
+    const dateB = String(b.inv && b.inv.date || '');
+    const byDate = dateB.localeCompare(dateA);
+    if(byDate !== 0) return byDate;
+    return String(b.inv && b.inv.invoiceNo || '').localeCompare(String(a.inv && a.inv.invoiceNo || ''), undefined, {numeric:true});
+  });
   box.innerHTML = '';
   filtered.forEach(({inv, idx})=>{
     const type = invoiceTypeOf(inv);
