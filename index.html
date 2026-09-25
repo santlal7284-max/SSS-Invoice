@@ -793,7 +793,7 @@ function switchToView(v, activeBtn, pushState){
   document.getElementById('view-'+v).classList.add('active');
   document.getElementById('topEyebrow').textContent = titles[v][0];
   document.getElementById('topTitle').textContent = titles[v][1];
-  if(v==='history') renderHistory();
+  if(v==='history'){ renderHistory(); pullFromCloudOnce(); }
   if(v==='settings') loadSettingsForm();
 }
 
@@ -2242,6 +2242,28 @@ function pushToCloud(){
   clearTimeout(cloudSyncTimer);
   cloudSyncTimer = setTimeout(()=>doPushToCloud(0), 250);
 }
+
+// One-off manual fetch, used as a fallback for the always-on listener above.
+// On a mobile browser the live 'on value' socket can go quiet in the
+// background (screen off, app switched away, network change) and not
+// reconnect the instant the app is reopened, which is why a bill made on
+// one device sometimes doesn't appear on another until you leave the
+// screen and come back. Calling this whenever History is opened, or the
+// app becomes visible again, forces a fresh read instead of waiting on
+// that socket, so a single open shows the latest data.
+function pullFromCloudOnce(){
+  if(!cloudDb) return;
+  cloudDb.ref('backup').once('value').then(snap=>{
+    const data = snap.val();
+    if(!data) return;
+    if(data.updatedBy === DEVICE_ID) return;
+    applyCloudData(data);
+  }).catch(err=>{ console.warn('Manual cloud pull failed', err); });
+}
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') pullFromCloudOnce();
+});
 
 function doPushToCloud(attempt){
   if(!cloudDb) return;
