@@ -531,6 +531,22 @@ function currentFY(){
 function resolvePrefix(template){
   return (template || '').replace(/MM/g, currentMonthMM()).replace(/FY/g, currentFY());
 }
+// Local (device-timezone) "today" as YYYY-MM-DD. Never use toISOString() for
+// invoice dates — that returns the UTC date, which in India (UTC+5:30) is
+// the PREVIOUS day until 5:30 AM, so bills made late night / early morning
+// got saved with yesterday's date. toLocaleDateString('en-CA') reliably
+// yields the ISO format in the device's own timezone.
+function localTodayISO(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + d;
+}
+// Same idea for a "YYYY-MM" month key, used by the History month filter.
+function localCurrentYm(){
+  return localTodayISO().slice(0, 7);
+}
 function prefixToRegex(template){
   if(!template) return null;
   const escaped = template.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -725,6 +741,13 @@ if(pendingFYReset && !cloudDb){
   // reconcile with the cloud counter (and the guarded reset above) once
   // any device comes back online.
   applyLocalFYReset();
+} else if(pendingFYReset && cloudDb){
+  // Cloud reachable at launch: DON'T locally reset the counter before the
+  // guarded cloud transaction runs — the winner of that transaction owns
+  // the reset. Resetting locally first would clobber a manually-advanced
+  // counter on the losing device. applyLocalFYReset() runs from
+  // tryCloudGuardedFYReset()'s .then() for every device (winner or not).
+  tryCloudGuardedFYReset();
 }
 
 /* ===================== Combined part list ===================== */
@@ -832,9 +855,6 @@ const cats = [...new Set(PARTS_CACHE.map(p=>p.cat))].sort();
 cats.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; catFilter.appendChild(o); });
 
 let visibleCount = 40;
-function norm(str){
-  return String(str||'').toLowerCase().replace(/[\s\-_.\/,()]+/g,'');
-}
 function normWords(str){
   return String(str||'').toLowerCase().replace(/[\-_.\/,()]+/g,' ').replace(/\s+/g,' ').trim();
 }
@@ -1165,7 +1185,7 @@ function resetInvoiceForm(){
     ? resolvePrefix(settings.gstPrefix||'') + padSeq(settings.gstNextNum)
     : resolvePrefix(settings.prefix||'') + padSeq(settings.nextNum);
   document.getElementById('invoiceNo').value = autoInvoiceNo;
-  document.getElementById('invoiceDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('invoiceDate').value = localTodayISO();
   document.getElementById('invoiceDiscount').value = '';
   document.getElementById('gstToggle').value = invoiceMode === 'gst' ? 'with' : 'without';
   document.getElementById('showTermsToggle').checked = true;
@@ -1211,12 +1231,36 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
   const validItems = currentItems.filter(it => (it.desc && it.desc.trim()) && (it.qty>0));
   if(validItems.length===0){ alert('Please add at least one item.'); return; }
 
+  // GST validation: with GST on, an empty buyer state silently falls back to
+  // IGST (inter-state) — possibly wrong tax on a real bill. Stop and ask.
+  if(invoiceMode === 'gst'){
+    if(!document.getElementById('buyerState').value.trim()){
+      alert('With GST billing, the buyer\'s State Code is required (it decides CGST+SGST vs IGST). Please fill it before saving.');
+      document.getElementById('buyerState').focus();
+      return;
+    }
+  }
+
   const saveBtn = document.getElementById('saveInvoiceBtn');
   saveBtn.disabled = true;
 
   const invoiceNoField = document.getElementById('invoiceNo');
   let finalInvoiceNo = invoiceNoField.value.trim();
   let numberWasAutoAllocated = false;
+
+  // Duplicate-number guard: warn if the number about to be saved already
+  // exists in history (ignoring the invoice being edited itself). Manually
+  // typed numbers especially can collide with an earlier bill — which would
+  // silently create two bills with the same number.
+  if(finalInvoiceNo){
+    const dupIdx = invoices.findIndex((inv, i) =>
+      inv.invoiceNo === finalInvoiceNo && (editingIndex === null || i !== editingIndex));
+    if(dupIdx !== -1){
+      const existing = invoices[dupIdx];
+      const ok = confirm('⚠ Invoice number "' + finalInvoiceNo + '" is ALREADY used by a bill dated ' + (existing.date||'?') + ' for ' + (existing.buyer && existing.buyer.name ? existing.buyer.name : 'an earlier customer') + '.\n\nSave anyway?');
+      if(!ok){ saveBtn.disabled = false; return; }
+    }
+  }
 
   // Sequential & multi-device protection: only re-allocate atomically when the
   // number on screen is still the auto-suggested one (i.e. user hasn't typed a custom number)
@@ -1502,7 +1546,7 @@ function exportGstInvoicesToExcel(){
           round2(t.rounded || 0)
         ];
       });
-    const totalsRow = ['', '', '', 'TOTAL',
+    const totalsRow = ['', '', 'TOTAL', '',
       round2(rows.reduce((s,r)=>s+r[4],0)), '',
       round2(rows.reduce((s,r)=>s+r[6],0)), '',
       round2(rows.reduce((s,r)=>s+r[8],0)), '',
@@ -1706,7 +1750,12 @@ function renderInvoicePdfContent(pdf, inv, opts){
         boxRows.push(['IGST @ '+gst.igst+'%', fmt(inv.totals.igstAmt), false]);
       }
     }
-    boxRows.push(['Taxable Value', fmt(inv.totals.taxable), false]);
+    // Only show a plain "Taxable Value" row when there was no discount —
+    // with a discount the box already carries "Taxable Value (before)" and
+    // "Taxable Value (after)", and a third bare row was confusing/duplicated.
+    if(!(inv.totals.discountPct > 0)){
+      boxRows.push(['Taxable Value', fmt(inv.totals.taxable), false]);
+    }
     boxRows.push(['TOTAL INVOICE VALUE', 'Rs. ' + fmt(inv.totals.rounded), true]);
     boxRows.push(['Grand Total', 'Rs. ' + fmt(inv.totals.rounded), true]);
 
@@ -1840,6 +1889,9 @@ document.getElementById('pdfViewChatBtn').addEventListener('click', ()=>{
   const inv = currentlyViewedInvoice;
   if(!inv) return;
   let mobile = (inv.buyer && inv.buyer.mobile ? inv.buyer.mobile : '').replace(/\D/g, '');
+  // Strip a leading trunk-access 0 (e.g. "09876543210") before adding the
+  // country code, otherwise wa.me gets a 12-digit number it can't route.
+  while(mobile.length > 10 && mobile.charAt(0) === '0') mobile = mobile.slice(1);
   if(!mobile){ toast('⚠ No mobile number saved for this bill'); return; }
   if(mobile.length === 10) mobile = '91' + mobile; // add India country code if not already present
   const msg = 'Hello, your invoice ' + (inv.invoiceNo||'') + ' is ready. Sharing the PDF shortly.';
@@ -1884,14 +1936,14 @@ function invoiceMatchesSearch(inv, q){
   return matchesQuery(haystackParts.join(' '), q);
 }
 
-let historySummaryYm = new Date().toISOString().slice(0,7);
+let historySummaryYm = localCurrentYm();
 function formatYm(ym){
   const [y,m] = ym.split('-').map(Number);
   return MONTH_NAMES[m-1] + ' ' + y;
 }
 function populateHistMonthOptions(){
   const sel = document.getElementById('histMonthSelect');
-  const currentYm = new Date().toISOString().slice(0,7);
+  const currentYm = localCurrentYm();
   const yms = new Set([currentYm, historySummaryYm]);
   invoices.forEach(inv=>{
     const ym = (inv.date||'').slice(0,7);
@@ -1953,9 +2005,9 @@ function renderHistory(){
       <div class="sub">${esc(inv.buyer.name)}${inv.buyer.mobile ? ' · '+esc(inv.buyer.mobile) : ''}</div>
       <div class="amt">₹${fmt(inv.totals.rounded)}</div>
       <div class="hist-actions">
-        <button class="btn btn-outline" data-view="${idx}">👁 View</button>
-        <button class="btn btn-outline" data-edit="${idx}">✏️ Edit</button>
-        <button class="btn btn-danger" data-del="${idx}">Delete</button>
+        <button class="btn btn-outline" data-view="${inv.id}">👁 View</button>
+        <button class="btn btn-outline" data-edit="${inv.id}">✏️ Edit</button>
+        <button class="btn btn-danger" data-del="${inv.id}">Delete</button>
       </div>`;
     box.appendChild(div);
   });
@@ -1976,18 +2028,28 @@ document.getElementById('historyFilter').addEventListener('click', (e)=>{
 });
 
 document.getElementById('historyList').addEventListener('click', (e)=>{
+  // Buttons carry the invoice's stable `id` (its creation timestamp), NOT a
+  // positional index. A cloud sync that adds/removes invoices between the
+  // list being rendered and a button being tapped used to shift array
+  // indexes — which could delete or edit the WRONG invoice. Looking the
+  // invoice up by id is immune to that.
+  function findIdxById(id){
+    return invoices.findIndex(inv => String(inv.id) === String(id));
+  }
   const vb = e.target.closest('[data-view]');
-  if(vb){ viewInvoicePdf(invoices[+vb.dataset.view]); return; }
+  if(vb){ const i = findIdxById(vb.dataset.view); if(i !== -1) viewInvoicePdf(invoices[i]); return; }
   const eb = e.target.closest('[data-edit]');
-  if(eb){ loadInvoiceForEdit(+eb.dataset.edit); return; }
+  if(eb){ const i = findIdxById(eb.dataset.edit); if(i !== -1) loadInvoiceForEdit(i); return; }
   const pb = e.target.closest('[data-print]');
-  if(pb){ printInvoice(invoices[+pb.dataset.print]); return; }
+  if(pb){ const i = findIdxById(pb.dataset.print); if(i !== -1) printInvoice(invoices[i]); return; }
   const sb = e.target.closest('[data-share]');
-  if(sb){ shareInvoice(invoices[+sb.dataset.share]); return; }
+  if(sb){ const i = findIdxById(sb.dataset.share); if(i !== -1) shareInvoice(invoices[i]); return; }
   const db = e.target.closest('[data-del]');
   if(db){
+    const i = findIdxById(db.dataset.del);
+    if(i === -1) return;
     if(confirm('Delete this invoice?')){
-      invoices.splice(+db.dataset.del,1);
+      invoices.splice(i,1);
       LS.set('sss_invoices', invoices);
       renderHistory();
     }
@@ -2014,7 +2076,7 @@ function loadInvoiceForEdit(idx){
   currentItems = inv.items.map(it => ({...it}));
   renderItems();
   document.getElementById('saveInvoiceBtn').textContent = 'Update Invoice';
-  switchToView('invoice', document.getElementById('newInvoiceBtn'));
+  switchToView('invoice', document.querySelector('.tab[data-view="invoice"]'));
   toast('Editing invoice ' + inv.invoiceNo);
 }
 
@@ -2176,9 +2238,15 @@ function applyCloudData(data){
   // underlying data actually changed.
   let settingsChanged = false, partsChanged = false, invoicesChanged = false;
   if(data.settings){
+    // MERGE, don't replace. The cloud copy may come from an older app
+    // version that lacks newer migration flags (prefixFormatV2Applied,
+    // pinForceUpdated, ...). Replacing wholesale would erase those local
+    // flags and re-run one-time migrations on the next launch — resetting
+    // prefixes or the PIN. Local wins for any key the remote is missing.
+    const mergedSettings = Object.assign({}, settings, data.settings);
     const oldKey = JSON.stringify(settings);
-    const newKey = JSON.stringify(data.settings);
-    if(oldKey !== newKey){ settings = data.settings; settingsChanged = true; }
+    const newKey = JSON.stringify(mergedSettings);
+    if(oldKey !== newKey){ settings = mergedSettings; settingsChanged = true; }
   }
   if(data.overrides){
     const oldKey = JSON.stringify(overrides);
