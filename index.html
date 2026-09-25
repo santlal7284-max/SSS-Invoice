@@ -2171,25 +2171,54 @@ function mergeInvoicesByLatest(localList, remoteList){
 }
 
 function applyCloudData(data){
-  if(data.settings) settings = data.settings;
-  if(data.overrides) overrides = data.overrides;
-  if(data.customParts) customParts = data.customParts;
-  // Never replace local invoices blindly. Merge local + cloud by invoice ID,
-  // keeping the newest updatedAt version. This prevents a temporary/stale
-  // cloud snapshot from making a bill disappear after reopening the app.
-  if(data.invoices) invoices = mergeInvoicesByLatest(invoices, data.invoices);
-  localStorage.setItem('sss_settings', JSON.stringify(settings));
-  localStorage.setItem('sss_price_overrides', JSON.stringify(overrides));
-  localStorage.setItem('sss_custom_parts', JSON.stringify(customParts));
-  localStorage.setItem('sss_invoices', JSON.stringify(invoices));
-  refreshParts(); renderPartList();
-  if(document.getElementById('view-history').classList.contains('active')) renderHistory();
-  if(document.getElementById('view-settings').classList.contains('active')) loadSettingsForm();
+  // Keep cloud sync lightweight: invoice-only updates must not rebuild the
+  // entire parts/autocomplete UI. Only refresh those sections when their
+  // underlying data actually changed.
+  let settingsChanged = false, partsChanged = false, invoicesChanged = false;
+  if(data.settings){
+    const oldKey = JSON.stringify(settings);
+    const newKey = JSON.stringify(data.settings);
+    if(oldKey !== newKey){ settings = data.settings; settingsChanged = true; }
+  }
+  if(data.overrides){
+    const oldKey = JSON.stringify(overrides);
+    const newKey = JSON.stringify(data.overrides);
+    if(oldKey !== newKey){ overrides = data.overrides; partsChanged = true; }
+  }
+  if(data.customParts){
+    const oldKey = JSON.stringify(customParts);
+    const newKey = JSON.stringify(data.customParts);
+    if(oldKey !== newKey){ customParts = data.customParts; partsChanged = true; }
+  }
+  if(data.invoices){
+    const before = invoices;
+    const merged = mergeInvoicesByLatest(invoices, data.invoices);
+    // Avoid another expensive render/localStorage write when nothing changed.
+    invoicesChanged = merged.length !== before.length || merged.some((inv,i)=>{
+      const a=before[i], b=inv;
+      return !a || !b || String(a.id)!==String(b.id) || Number(a.updatedAt||0)!==Number(b.updatedAt||0);
+    });
+    if(invoicesChanged) invoices = merged;
+  }
+
+  if(settingsChanged) localStorage.setItem('sss_settings', JSON.stringify(settings));
+  if(partsChanged) {
+    localStorage.setItem('sss_price_overrides', JSON.stringify(overrides));
+    localStorage.setItem('sss_custom_parts', JSON.stringify(customParts));
+    refreshParts();
+    renderPartList();
+  }
+  if(invoicesChanged) {
+    localStorage.setItem('sss_invoices', JSON.stringify(invoices));
+    if(document.getElementById('view-history').classList.contains('active')) renderHistory();
+  }
+  if(settingsChanged && document.getElementById('view-settings').classList.contains('active')) loadSettingsForm();
 }
 
 function listenToCloud(){
   if(!cloudDb) return;
   setCloudStatus('syncing');
+  // One realtime listener keeps both devices live without polling.
   cloudDb.ref('backup').on('value', snap=>{
     const data = snap.val();
     setCloudStatus('connected');
@@ -2211,7 +2240,7 @@ function listenToCloud(){
 function pushToCloud(){
   if(!cloudDb) return;
   clearTimeout(cloudSyncTimer);
-  cloudSyncTimer = setTimeout(()=>doPushToCloud(0), 600);
+  cloudSyncTimer = setTimeout(()=>doPushToCloud(0), 250);
 }
 
 function doPushToCloud(attempt){
