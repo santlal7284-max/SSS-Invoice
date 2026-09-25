@@ -2148,11 +2148,36 @@ function initCloudSync(){
   }catch(e){ console.warn('Cloud sync unavailable', e); setCloudStatus('offline'); }
 }
 
+function mergeInvoicesByLatest(localList, remoteList){
+  const byId = new Map();
+  (Array.isArray(remoteList) ? remoteList : []).forEach(inv=>{
+    if(!inv || inv.id === undefined || inv.id === null) return;
+    const key = String(inv.id);
+    if(!inv.updatedAt) inv.updatedAt = Number(inv.id) || Date.now();
+    byId.set(key, inv);
+  });
+  (Array.isArray(localList) ? localList : []).forEach(inv=>{
+    if(!inv || inv.id === undefined || inv.id === null) return;
+    const key = String(inv.id);
+    if(!inv.updatedAt) inv.updatedAt = Number(inv.id) || Date.now();
+    const remote = byId.get(key);
+    const localTime = Number(inv.updatedAt) || Number(inv.id) || 0;
+    const remoteTime = remote ? (Number(remote.updatedAt) || Number(remote.id) || 0) : -1;
+    if(!remote || localTime >= remoteTime) byId.set(key, inv);
+  });
+  return Array.from(byId.values()).sort((a,b)=>
+    (Number(b.id)||0) - (Number(a.id)||0)
+  );
+}
+
 function applyCloudData(data){
   if(data.settings) settings = data.settings;
   if(data.overrides) overrides = data.overrides;
   if(data.customParts) customParts = data.customParts;
-  if(data.invoices) invoices = data.invoices;
+  // Never replace local invoices blindly. Merge local + cloud by invoice ID,
+  // keeping the newest updatedAt version. This prevents a temporary/stale
+  // cloud snapshot from making a bill disappear after reopening the app.
+  if(data.invoices) invoices = mergeInvoicesByLatest(invoices, data.invoices);
   localStorage.setItem('sss_settings', JSON.stringify(settings));
   localStorage.setItem('sss_price_overrides', JSON.stringify(overrides));
   localStorage.setItem('sss_custom_parts', JSON.stringify(customParts));
