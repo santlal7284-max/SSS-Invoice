@@ -178,10 +178,10 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 
 /* PDF in-app preview */
 .pdfview-overlay{display:none; position:fixed; inset:0; background:#fff; z-index:90; flex-direction:column;}
-.pdfview-header{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; background:var(--navy); color:#fff; padding:10px 14px; font-weight:700; font-size:14px;}
+.pdfview-header{display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:nowrap; background:var(--navy); color:#fff; padding:10px 12px; font-weight:700; font-size:14px;}
 .pdfview-header span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
-.pdfview-header > div{flex-shrink:0; display:flex; gap:6px;}
-.btn-pdfview{background:var(--amber); color:#2B1B00; border:none; padding:7px 9px; font-size:12px; font-weight:700; border-radius:7px; white-space:nowrap;}
+.pdfview-header > div{flex-shrink:0; display:flex; gap:5px;}
+.btn-pdfview{background:var(--amber); color:#2B1B00; border:none; padding:6px 7px; font-size:11.5px; font-weight:700; border-radius:7px; white-space:nowrap;}
 .pdfview-frame{flex:1; width:100%; overflow-y:auto; background:var(--bg); padding:14px;}
 
 /* PIN lock screen */
@@ -436,6 +436,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
     <span id="pdfViewTitle">Invoice</span>
     <div style="display:flex; gap:8px;">
       <button class="btn-pdfview" id="pdfViewChatBtn">💬 Chat</button>
+      <button class="btn-pdfview" id="pdfViewPrintBtn">🖨️ Print</button>
       <button class="btn-pdfview" id="pdfViewShareBtn">📤 Share</button>
       <button class="btn-pdfview" id="pdfViewCloseBtn">✕ Close</button>
     </div>
@@ -1576,8 +1577,8 @@ document.getElementById('exportGstExcelBtn').addEventListener('click', exportGst
    text (via jsPDF's own text API + AutoTable), never a screenshot — so
    tools like Excel VBA can reliably open the PDF and extract fields.
    Field labels are kept exact ("Invoice No:", "Billing To:", "GSTIN:",
-   "Grand Total:") so a VBA macro can search for the label text and read
-   whatever follows it. The visual layout (logos, watermark, signature,
+   "TOTAL INVOICE VALUE") so a VBA macro can search for the label text and
+   read whatever follows it. The visual layout (logos, watermark, signature,
    colours, bank box) mirrors the original design as closely as jsPDF's
    drawing primitives allow. */
 function buildInvoicePdf(inv){
@@ -1757,7 +1758,6 @@ function renderInvoicePdfContent(pdf, inv, opts){
       boxRows.push(['Taxable Value', fmt(inv.totals.taxable), false]);
     }
     boxRows.push(['TOTAL INVOICE VALUE', 'Rs. ' + fmt(inv.totals.rounded), true]);
-    boxRows.push(['Grand Total', 'Rs. ' + fmt(inv.totals.rounded), true]);
 
     const boxW = 78, rowH = 7.2;
     const boxX = pageW - margin - boxW, boxY = y;
@@ -1883,6 +1883,26 @@ document.getElementById('pdfViewCloseBtn').addEventListener('click', ()=>{
 
 document.getElementById('pdfViewShareBtn').addEventListener('click', ()=>{
   if(currentlyViewedInvoice) shareInvoice(currentlyViewedInvoice);
+});
+
+// True browser print: builds the same vector PDF used for Download/Share,
+// opens it in a new tab, and asks the browser to bring up its print dialog
+// on it (pdf.autoPrint()) — so the printed page matches the PDF exactly
+// instead of printing the app's on-screen HTML preview.
+function printInvoiceNow(inv){
+  toast('Preparing PDF…');
+  buildInvoicePdf(inv).then((pdf) => {
+    pdf.autoPrint();
+    const blobUrl = pdf.output('bloburl');
+    const win = window.open(blobUrl, '_blank');
+    if(!win){ toast('⚠ Please allow pop-ups to print'); }
+  }).catch(() => {
+    alert('There was a problem preparing the PDF for printing. Please check your internet connection and try again.');
+  });
+}
+
+document.getElementById('pdfViewPrintBtn').addEventListener('click', ()=>{
+  if(currentlyViewedInvoice) printInvoiceNow(currentlyViewedInvoice);
 });
 
 document.getElementById('pdfViewChatBtn').addEventListener('click', ()=>{
