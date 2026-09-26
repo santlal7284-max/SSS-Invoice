@@ -2504,16 +2504,19 @@ document.getElementById('saveAppPinBtn').addEventListener('click', ()=>{
   toast('✅ App lock code updated');
 });
 
-/* ===================== Pull-to-refresh =====================
-   Swipe down from the top of whichever tab is open to re-sync with the
-   cloud and re-render that tab — a soft, in-place refresh. This never
-   reloads the page, so it never shows the App Lock PIN screen again;
-   that screen only appears when the app is actually (re)launched. */
+/* ===================== Pull-to-refresh + swipe between tabs =====================
+   Swipe down from the top of a tab to re-sync with the cloud and re-render
+   it in place (never a page reload, so the App Lock PIN screen never
+   reappears — that only shows on an actual app launch). Swipe left/right
+   anywhere in a tab to move to the next/previous tab, same order as the
+   bottom tab bar (Price Master ↔ Invoice ↔ History ↔ Settings). */
 (function(){
   const PTR_MAX = 70, PTR_THRESHOLD = 58;
+  const SWIPE_THRESHOLD = 70;
+  const TAB_ORDER = ['master','invoice','history','settings'];
   const el = document.getElementById('ptrIndicator');
   const label = document.getElementById('ptrLabel');
-  let startY = null, pulling = false, activeView = null, refreshing = false;
+  let startX = null, startY = null, activeView = null, refreshing = false, dir = null;
 
   function setLabel(text){ if(label) label.textContent = text; }
 
@@ -2534,48 +2537,81 @@ document.getElementById('saveAppPinBtn').addEventListener('click', ()=>{
     });
   }
 
+  // step: +1 = next tab (swipe left), -1 = previous tab (swipe right).
+  // Just switches views, same as tapping a tab or pressing back — it never
+  // resets the Invoice/GST Invoice form, so nothing typed is lost.
+  function swipeToTab(step){
+    const idx = TAB_ORDER.indexOf(currentViewName);
+    if(idx === -1) return;
+    const nextIdx = idx + step;
+    if(nextIdx < 0 || nextIdx >= TAB_ORDER.length) return;
+    const v = TAB_ORDER[nextIdx];
+    switchToView(v, document.querySelector('.tab[data-view="'+v+'"]'));
+  }
+
   document.addEventListener('touchstart', (e)=>{
-    if(refreshing) return;
+    if(refreshing || e.touches.length !== 1) return;
     const view = e.target.closest('.view.active');
-    if(!view || view.scrollTop > 0) return;
+    if(!view) return;
+    startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     activeView = view;
-    pulling = true;
+    dir = null;
   }, {passive:true});
 
   document.addEventListener('touchmove', (e)=>{
-    if(!pulling || refreshing || startY === null) return;
+    if(refreshing || startX === null || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - startX;
     const dy = e.touches[0].clientY - startY;
-    if(dy <= 0 || activeView.scrollTop > 0){ pulling = false; return; }
-    e.preventDefault();
-    if(el.parentElement !== activeView) activeView.insertBefore(el, activeView.firstChild);
-    el.classList.add('dragging');
-    const pull = Math.min(dy * 0.5, PTR_MAX);
-    el.style.height = pull + 'px';
-    const ready = pull >= PTR_THRESHOLD;
-    el.classList.toggle('ready', ready);
-    setLabel(ready ? 'Release to refresh' : 'Pull to refresh');
+
+    if(dir === null){
+      if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      dir = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+      // Pulling down only means "refresh" when it starts at the very top
+      // of the list — otherwise it's just normal scrolling, leave it alone.
+      if(dir === 'v' && (dy <= 0 || activeView.scrollTop > 0)) dir = 'none';
+    }
+
+    if(dir === 'h'){ e.preventDefault(); return; }
+
+    if(dir === 'v'){
+      if(activeView.scrollTop > 0){ dir = 'none'; return; }
+      e.preventDefault();
+      if(el.parentElement !== activeView) activeView.insertBefore(el, activeView.firstChild);
+      el.classList.add('dragging');
+      const pull = Math.min(dy * 0.5, PTR_MAX);
+      el.style.height = pull + 'px';
+      const ready = pull >= PTR_THRESHOLD;
+      el.classList.toggle('ready', ready);
+      setLabel(ready ? 'Release to refresh' : 'Pull to refresh');
+    }
   }, {passive:false});
 
-  document.addEventListener('touchend', ()=>{
-    if(!pulling || refreshing){ pulling = false; return; }
-    pulling = false; startY = null;
-    el.classList.remove('dragging');
-    const pulled = parseFloat(el.style.height) || 0;
-    if(pulled >= PTR_THRESHOLD){
-      refreshing = true;
-      el.style.height = '44px';
-      el.classList.remove('ready');
-      el.classList.add('spinning');
-      setLabel('Refreshing…');
-      refreshCurrentView().finally(()=>{
+  document.addEventListener('touchend', (e)=>{
+    if(refreshing || startX === null){ startX = null; startY = null; dir = null; return; }
+    if(dir === 'h'){
+      const endX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : startX;
+      const dx = endX - startX;
+      if(Math.abs(dx) >= SWIPE_THRESHOLD) swipeToTab(dx < 0 ? 1 : -1);
+    } else if(dir === 'v'){
+      el.classList.remove('dragging');
+      const pulled = parseFloat(el.style.height) || 0;
+      if(pulled >= PTR_THRESHOLD){
+        refreshing = true;
+        el.style.height = '44px';
+        el.classList.remove('ready');
+        el.classList.add('spinning');
+        setLabel('Refreshing…');
+        refreshCurrentView().finally(()=>{
+          el.style.height = '0px';
+          el.classList.remove('spinning');
+          refreshing = false;
+        });
+      } else {
         el.style.height = '0px';
-        el.classList.remove('spinning');
-        refreshing = false;
-      });
-    } else {
-      el.style.height = '0px';
+      }
     }
+    startX = null; startY = null; activeView = null; dir = null;
   }, {passive:true});
 })();
 
