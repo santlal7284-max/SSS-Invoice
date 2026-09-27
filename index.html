@@ -46,7 +46,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .sync-badge.offline .dot{background:#F26B6B;}
 
 /* Views */
-.view{display:none; flex:1; min-height:0; padding:14px 14px 90px; overflow-y:auto; touch-action:pan-y;}
+.view{display:none; flex:1; padding:14px 14px 90px; overflow-y:auto;}
 .view.active{display:block; animation:fadeSlideIn .28s var(--ease);}
 
 .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:12px; box-shadow:var(--shadow-sm); transition:box-shadow .2s var(--ease), transform .2s var(--ease);}
@@ -132,16 +132,6 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 
 .empty{text-align:center; padding:40px 20px; color:var(--text-dim);}
 .empty .ic{font-size:38px; margin-bottom:8px;}
-
-/* pull-to-refresh */
-html,body{overscroll-behavior-y:contain;}
-.view{overscroll-behavior-y:contain;}
-.ptr-indicator{height:0; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:6px; color:var(--text-dim); font-size:12px; font-weight:700; background:var(--navy-pale); transition:height .25s var(--ease), color .15s var(--ease);}
-.ptr-indicator.dragging{transition:none;}
-.ptr-indicator .ptr-spin{display:inline-block; font-size:15px; line-height:1; transform:rotate(0deg); transition:transform .15s var(--ease);}
-.ptr-indicator.ready{color:var(--amber-dark);}
-.ptr-indicator.ready .ptr-spin{transform:rotate(180deg);}
-.ptr-indicator.spinning .ptr-spin{animation:spin .7s linear infinite;}
 
 .badge{display:inline-block; background:var(--amber); color:#2B1B00; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;}
 
@@ -239,8 +229,6 @@ html,body{overscroll-behavior-y:contain;}
     <h1 id="topTitle">Price Master</h1>
     <div class="stripe"></div>
   </div>
-
-  <div class="ptr-indicator" id="ptrIndicator"><span class="ptr-spin">↻</span><span id="ptrLabel">Pull to refresh</span></div>
 
   <!-- PRICE MASTER -->
   <div class="view active" id="view-master">
@@ -2503,163 +2491,6 @@ document.getElementById('saveAppPinBtn').addEventListener('click', ()=>{
   document.getElementById('setAppPinConfirm').value = '';
   toast('✅ App lock code updated');
 });
-
-/* ===================== Pull-to-refresh =====================
-   Pull down from the top of the active tab to sync with cloud.
-   IMPORTANT: normal vertical scrolling is never hijacked.
-   No page reload -> App Lock PIN does not reappear.
-*/
-(function(){
-  const PTR_MAX = 70;
-  const PTR_THRESHOLD = 58;
-  const el = document.getElementById('ptrIndicator');
-  const label = document.getElementById('ptrLabel');
-
-  let startX = null;
-  let startY = null;
-  let activeView = null;
-  let dir = null;
-  let pulling = false;
-  let refreshing = false;
-
-  function setLabel(text){
-    if(label) label.textContent = text;
-  }
-
-  function resetGesture(){
-    startX = null;
-    startY = null;
-    activeView = null;
-    dir = null;
-    pulling = false;
-  }
-
-  async function refreshCurrentView(){
-    const minDelay = new Promise(resolve => setTimeout(resolve, 450));
-
-    const cloudPull = new Promise(resolve => {
-      if(!cloudDb){
-        resolve();
-        return;
-      }
-
-      cloudDb.ref('backup').once('value').then(snap => {
-        const data = snap.val();
-        if(data && data.updatedBy !== DEVICE_ID){
-          applyCloudData(data);
-        }
-        resolve();
-      }).catch(() => resolve());
-    });
-
-    await Promise.all([minDelay, cloudPull]);
-
-    if(currentViewName === 'master') renderPartList();
-    else if(currentViewName === 'history') renderHistory();
-    else if(currentViewName === 'settings') loadSettingsForm();
-  }
-
-  document.addEventListener('touchstart', e => {
-    if(refreshing || e.touches.length !== 1) return;
-
-    const view = e.target.closest('.view.active');
-    if(!view) return;
-
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    activeView = view;
-    dir = null;
-    pulling = false;
-  }, {passive:true});
-
-  document.addEventListener('touchmove', e => {
-    if(refreshing || startX === null || e.touches.length !== 1 || !activeView) return;
-
-    const dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-
-    if(dir === null){
-      if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      dir = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
-    }
-
-    // Horizontal movement is left completely to the browser.
-    // Never preventDefault here, so normal page scrolling remains reliable.
-    if(dir === 'h') return;
-
-    // Upward movement is normal scrolling.
-    if(dy <= 0){
-      dir = 'none';
-      return;
-    }
-
-    // Pull-to-refresh is available only when the active tab is already at top.
-    if(activeView.scrollTop > 0){
-      dir = 'none';
-      return;
-    }
-
-    // Only an actual downward pull from the top gets intercepted.
-    pulling = true;
-    e.preventDefault();
-
-    if(el){
-      el.classList.add('dragging');
-      const pull = Math.min(dy * 0.5, PTR_MAX);
-      el.style.height = pull + 'px';
-      const ready = pull >= PTR_THRESHOLD;
-      el.classList.toggle('ready', ready);
-      setLabel(ready ? 'Release to refresh' : 'Pull to refresh');
-    }
-  }, {passive:false});
-
-  document.addEventListener('touchend', () => {
-    if(startX === null) return;
-
-    if(refreshing){
-      resetGesture();
-      return;
-    }
-
-    if(pulling && el){
-      el.classList.remove('dragging');
-      const pulled = parseFloat(el.style.height) || 0;
-
-      if(pulled >= PTR_THRESHOLD){
-        refreshing = true;
-        el.style.height = '44px';
-        el.classList.remove('ready');
-        el.classList.add('spinning');
-        setLabel('Refreshing…');
-
-        refreshCurrentView().finally(() => {
-          el.style.height = '0px';
-          el.classList.remove('spinning');
-          refreshing = false;
-          setLabel('Pull to refresh');
-        });
-      }else{
-        el.style.height = '0px';
-        el.classList.remove('ready');
-        setLabel('Pull to refresh');
-      }
-    }
-
-    resetGesture();
-  }, {passive:true});
-
-  document.addEventListener('touchcancel', () => {
-    if(!el){
-      resetGesture();
-      return;
-    }
-
-    el.classList.remove('dragging','ready','spinning');
-    el.style.height = '0px';
-    setLabel('Pull to refresh');
-    resetGesture();
-  }, {passive:true});
-})();
 
 /* ===================== Init ===================== */
 // Building the full ~12,000-item price list and doing the first render
