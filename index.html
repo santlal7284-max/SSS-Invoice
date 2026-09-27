@@ -2434,12 +2434,26 @@ function nextInvoiceNumber(mode){
 
 window.addEventListener('DOMContentLoaded', initCloudSync);
 
-/* ===================== App Lock (PIN screen) ===================== */
+/* ===================== App Lock (PIN screen) =====================
+   Unlocking is remembered for this browser/WebView SESSION (sessionStorage),
+   not just in a JS variable — so a pull-to-refresh or any in-app reload,
+   which keeps the same tab/session alive, will NOT ask for the PIN again.
+   Actually quitting the app (closing the tab / removing it from recents)
+   clears sessionStorage, so the PIN is required again on a real fresh
+   launch, same as before. This adds no touch/scroll handling of any kind,
+   so it can't cause the earlier scrolling problem. */
 (function(){
   let entered = '';
   const dotsBox = document.getElementById('pinDots');
   const overlay = document.getElementById('lockOverlay');
   const errBox = document.getElementById('lockError');
+  const UNLOCK_KEY = 'sss_unlocked';
+
+  try{
+    if(sessionStorage.getItem(UNLOCK_KEY) === '1'){
+      overlay.style.display = 'none';
+    }
+  } catch(e){ /* sessionStorage unavailable — just show the PIN screen as before */ }
 
   function paintDots(){
     const dots = dotsBox.querySelectorAll('.pd');
@@ -2451,6 +2465,7 @@ window.addEventListener('DOMContentLoaded', initCloudSync);
     if(entered === correctPin){
       overlay.style.display = 'none';
       entered = '';
+      try{ sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){}
     } else {
       errBox.textContent = 'Wrong code, try again';
       overlay.classList.add('lock-shake');
