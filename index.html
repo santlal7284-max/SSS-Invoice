@@ -449,7 +449,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
 <script>
 /* ===================== Storage helpers ===================== */
-const CLOUD_KEYS = ['sss_settings','sss_price_overrides','sss_custom_parts','sss_invoices'];
+const CLOUD_KEYS = ['sss_settings','sss_price_overrides','sss_custom_parts','sss_invoices','sss_deleted'];
 
 // Declared here (near the very top) on purpose: settings/migration code
 // below can trigger a save (LS.set -> pushToCloud) during the very first
@@ -473,7 +473,7 @@ const DEVICE_ID = (function(){
 const LS = {
   get(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
   set(key, val){
-    try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+    try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){ try{ if(typeof toast==='function') toast('⚠ Phone storage full — export a backup'); }catch(_){} }
     if(CLOUD_KEYS.indexOf(key) !== -1) pushToCloud();
   }
 };
@@ -577,6 +577,43 @@ function migrateAddFY(str){
 let overrides = LS.get('sss_price_overrides', {});     // {code: {fbasic, cbasic}}
 let customParts = LS.get('sss_custom_parts', []);       // [[code,hsn,cat,desc,fbasic,cbasic], ...]
 let invoices = LS.get('sss_invoices', []);
+
+/* ---- Sync fixes ----
+   1) stripInvSnapshot: old bills carried a full copy of settings (signature
+      image + app PIN) inside every invoice. That bloated storage and cloud
+      sync. Nothing reads it, so it is removed everywhere.
+   2) deletedInvoices: "tombstones" so a deleted bill stays deleted on every
+      device instead of being re-added by the cloud merge. */
+let deletedInvoices = LS.get('sss_deleted', {});
+if(!deletedInvoices || typeof deletedInvoices !== 'object' || Array.isArray(deletedInvoices)) deletedInvoices = {};
+function stripInvSnapshot(inv){
+  if(inv && inv.settingsSnapshot){
+    if(inv.settingsSnapshot.signatureImage !== undefined || inv.settingsSnapshot.appPin !== undefined){
+      delete inv.settingsSnapshot.signatureImage;
+      delete inv.settingsSnapshot.appPin;
+      return true;
+    }
+  }
+  return false;
+}
+function mergeDeletedFrom(remoteDeleted){
+  let changed = false;
+  if(remoteDeleted && typeof remoteDeleted === 'object'){
+    Object.keys(remoteDeleted).forEach(k=>{
+      if(!deletedInvoices[k]){ deletedInvoices[k] = remoteDeleted[k] || Date.now(); changed = true; }
+    });
+  }
+  if(changed){ try{ localStorage.setItem('sss_deleted', JSON.stringify(deletedInvoices)); }catch(e){} }
+  return changed;
+}
+(function cleanupOldSnapshots(){
+  let changed = false;
+  (Array.isArray(invoices) ? invoices : []).forEach(inv=>{ if(stripInvSnapshot(inv)) changed = true; });
+  if(changed){
+    try{ localStorage.setItem('sss_invoices', JSON.stringify(invoices)); }catch(e){}
+    try{ localStorage.setItem('sss_snap_push_pending', '1'); }catch(e){}
+  }
+})();
 // Older invoices use their creation id as a stable fallback sync timestamp.
 invoices.forEach(inv=>{ if(inv && !inv.updatedAt) inv.updatedAt = Number(inv.id) || Date.now(); });
 
@@ -1298,7 +1335,7 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     totals,
     showTerms: document.getElementById('showTermsToggle').checked,
     warrantyMonths: parseInt(document.getElementById('warrantyMonths').value) || 0,
-    settingsSnapshot: {...settings},
+    settingsSnapshot: (function(){ const ss = {...settings}; delete ss.signatureImage; delete ss.appPin; return ss; })(),
     updatedAt: Date.now()
   };
   if(editingIndex !== null){
@@ -1318,6 +1355,13 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     toast('✅ Invoice saved: ' + inv.invoiceNo);
   }
   saveBtn.disabled = false;
+  try{
+    historySummaryYm = (inv.date||'').slice(0,7) || localCurrentYm();
+    historyFilter = invoiceTypeOf(inv);
+    document.querySelectorAll('.hist-filter-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.filter === historyFilter);
+    });
+  }catch(e){}
   resetInvoiceForm();
 });
 
@@ -2048,6 +2092,8 @@ document.getElementById('historyList').addEventListener('click', (e)=>{
     const i = findIdxById(db.dataset.del);
     if(i === -1) return;
     if(confirm('Delete this invoice?')){
+      deletedInvoices[String(invoices[i].id)] = Date.now();
+      LS.set('sss_deleted', deletedInvoices);
       invoices.splice(i,1);
       LS.set('sss_invoices', invoices);
       renderHistory();
@@ -2167,7 +2213,7 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
       if(data.settings) settings = data.settings;
       if(data.overrides) overrides = data.overrides;
       if(data.customParts) customParts = data.customParts;
-      if(data.invoices) invoices = data.invoices;
+      if(data.invoices){ invoices = data.invoices; invoices.forEach(inv=>{ if(inv && inv.id!==undefined) delete deletedInvoices[String(inv.id)]; stripInvSnapshot(inv); }); LS.set('sss_deleted', deletedInvoices); }
       LS.set('sss_settings', settings); LS.set('sss_price_overrides', overrides);
       LS.set('sss_custom_parts', customParts); LS.set('sss_invoices', invoices);
       refreshParts(); renderPartList(); loadSettingsForm();
@@ -2201,6 +2247,7 @@ function initCloudSync(){
     firebase.auth().signInWithEmailAndPassword(APP_CLOUD_EMAIL, APP_CLOUD_PASSWORD).then(()=>{
       cloudDb = firebase.database();
       listenToCloud();
+      try{ if(localStorage.getItem('sss_snap_push_pending')){ localStorage.removeItem('sss_snap_push_pending'); pushToCloud(); } }catch(e){}
       tryCloudGuardedFYReset();
     }).catch(err=>{
       console.warn('App sign-in failed, cloud sync disabled', err);
@@ -2214,12 +2261,16 @@ function mergeInvoicesByLatest(localList, remoteList){
   (Array.isArray(remoteList) ? remoteList : []).forEach(inv=>{
     if(!inv || inv.id === undefined || inv.id === null) return;
     const key = String(inv.id);
+    if(deletedInvoices[key]) return;
+    stripInvSnapshot(inv);
     if(!inv.updatedAt) inv.updatedAt = Number(inv.id) || Date.now();
     byId.set(key, inv);
   });
   (Array.isArray(localList) ? localList : []).forEach(inv=>{
     if(!inv || inv.id === undefined || inv.id === null) return;
     const key = String(inv.id);
+    if(deletedInvoices[key]) return;
+    stripInvSnapshot(inv);
     if(!inv.updatedAt) inv.updatedAt = Number(inv.id) || Date.now();
     const remote = byId.get(key);
     const localTime = Number(inv.updatedAt) || Number(inv.id) || 0;
@@ -2236,6 +2287,7 @@ function applyCloudData(data){
   // entire parts/autocomplete UI. Only refresh those sections when their
   // underlying data actually changed.
   let settingsChanged = false, partsChanged = false, invoicesChanged = false;
+  mergeDeletedFrom(data.deleted);
   if(data.settings){
     // MERGE, don't replace. The cloud copy may come from an older app
     // version that lacks newer migration flags (prefixFormatV2Applied,
@@ -2257,9 +2309,9 @@ function applyCloudData(data){
     const newKey = JSON.stringify(data.customParts);
     if(oldKey !== newKey){ customParts = data.customParts; partsChanged = true; }
   }
-  if(data.invoices){
+  if(data.invoices || data.deleted){
     const before = invoices;
-    const merged = mergeInvoicesByLatest(invoices, data.invoices);
+    const merged = mergeInvoicesByLatest(invoices, data.invoices || []);
     // Avoid another expensive render/localStorage write when nothing changed.
     invoicesChanged = merged.length !== before.length || merged.some((inv,i)=>{
       const a=before[i], b=inv;
@@ -2346,13 +2398,16 @@ function doPushToCloud(attempt){
     const remoteInvoices = Array.isArray(base.invoices) ? base.invoices : [];
     const localInvoices = Array.isArray(invoices) ? invoices : [];
     const byId = new Map();
+    const mergedDeleted = Object.assign({}, (base.deleted && typeof base.deleted === 'object') ? base.deleted : {}, deletedInvoices);
 
     remoteInvoices.forEach(inv=>{
-      if(inv && inv.id !== undefined && inv.id !== null) byId.set(String(inv.id), inv);
+      if(inv && inv.id !== undefined && inv.id !== null && !mergedDeleted[String(inv.id)]){ stripInvSnapshot(inv); byId.set(String(inv.id), inv); }
     });
     localInvoices.forEach(inv=>{
       if(!inv || inv.id === undefined || inv.id === null) return;
       const key = String(inv.id);
+      if(mergedDeleted[key]) return;
+      stripInvSnapshot(inv);
       const remote = byId.get(key);
       const localTime = Number(inv.updatedAt) || Number(inv.id) || 0;
       const remoteTime = remote ? (Number(remote.updatedAt) || Number(remote.id) || 0) : -1;
@@ -2363,19 +2418,24 @@ function doPushToCloud(attempt){
       (Number(b.id)||0) - (Number(a.id)||0)
     );
 
-    return {
+    const out = {
       settings, overrides, customParts,
       invoices: mergedInvoices,
       updatedAt, updatedBy: DEVICE_ID
     };
+    if(Object.keys(mergedDeleted).length) out.deleted = mergedDeleted;
+    return out;
   }).then(result=>{
     cloudSyncing = false;
     lastCloudUpdatedAt = updatedAt;
     if(result && result.snapshot && result.snapshot.val()){
       const merged = result.snapshot.val();
+      mergeDeletedFrom(merged.deleted);
       if(Array.isArray(merged.invoices)){
-        invoices = merged.invoices;
-        localStorage.setItem('sss_invoices', JSON.stringify(invoices));
+        // MERGE (don't overwrite): a bill saved while this slow sync was in
+        // flight must not be wiped out by the older result.
+        invoices = mergeInvoicesByLatest(invoices, merged.invoices);
+        try{ localStorage.setItem('sss_invoices', JSON.stringify(invoices)); }catch(e){}
       }
     }
     setCloudStatus('connected');
