@@ -199,7 +199,53 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 .lock-error{color:#F9A0A0; font-size:13px; height:18px; margin-top:12px; animation:fadeSlideIn .2s var(--ease);}
 .lock-shake{animation:shakeX .35s;}
 @keyframes shakeX{0%,100%{transform:translateX(0);} 20%{transform:translateX(-8px);} 40%{transform:translateX(8px);} 60%{transform:translateX(-6px);} 80%{transform:translateX(6px);}}
+
+/* ===== colour themes ===== */
+:root{--g1:#4338CA; --g2:#7C3AED; --tabbg:#1E1B4B; --navy:#312E81; --navy-light:#4338CA; --navy-pale:#EEF0FF; --bg:#F4F5FF; --border:#E2E5F6; --text:#1B1B3A; --text-dim:#64668A; --accent2:#06B6D4; --tabtxt:#A5A8D8; --shadowc:rgba(67,56,202,.28);}
+html[data-accent="teal"]{--g1:#0F766E; --g2:#0891B2; --tabbg:#0B3B3A; --navy:#0F5E63; --navy-light:#0891B2; --navy-pale:#E6F6F6; --bg:#F1F8F8; --border:#D8EBEC; --text:#12302F; --text-dim:#587372; --accent2:#F59E0B; --tabtxt:#9ACFCF; --shadowc:rgba(8,145,178,.28);}
+html[data-accent="classic"]{--g1:#12253F; --g2:#1B3355; --tabbg:#12253F; --navy:#12253F; --navy-light:#1B3355; --navy-pale:#EDF1F6; --bg:#F3F6FA; --border:#DEE5EC; --text:#16233A; --text-dim:#5C6B7A; --accent2:#F0A93B; --tabtxt:#9FB1C7; --shadowc:rgba(18,37,63,.25);}
+.topbar{background:linear-gradient(135deg,var(--g1),var(--g2)) !important;}
+.tabbar{background:var(--tabbg) !important;}
+.tab{color:var(--tabtxt);}
+.btn-primary,.btn-primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2)); box-shadow:0 4px 12px var(--shadowc);}
+.btn-primary:hover{filter:brightness(1.08);}
+.lock-overlay{background:linear-gradient(160deg,var(--g1),var(--g2));}
+.card>h3::before{content:''; display:inline-block; width:4px; height:15px; border-radius:3px; background:linear-gradient(var(--g1),var(--accent2)); margin-right:8px; vertical-align:-2px;}
+.item-card{border-left:4px solid var(--accent2);}
+.item-card .idx{background:linear-gradient(135deg,var(--g1),var(--g2));}
+.totals{border-top-color:var(--g1);}
+.hist-row{border-left:4px solid var(--g2);}
+.hist-badge.normal{background:rgba(67,56,202,.12); color:var(--g1);}
+#histSummaryCard{background:linear-gradient(135deg,var(--navy-pale),var(--surface));}
+/* show / hide existing options */
+html.off-billtype #gstToggleField,html.off-discount #discountField,html.off-warranty #warrantyMonthsField,html.off-warranty #termsToggleField,
+html.off-taxincl .item-card>label,html.off-pdfbtns #printInvoiceBtn,html.off-pdfbtns #shareInvoiceBtn,html.off-venus #venusFillBtn,html.off-excel #exportGstExcelBtn{display:none !important;}
+html.nopin .lock-overlay{display:none !important;}
+/* ===== v2 additions ===== */
+html.dark{--bg:#0F1A2B; --surface:#18263B; --border:#2A3B54; --text:#E6EDF6; --text-dim:#9AABBF; --navy-pale:#1F3250; color-scheme:dark;}
+html.dark input,html.dark select,html.dark textarea{background:#0F1A2B !important; color:var(--text) !important; border-color:var(--border) !important;}
+html.dark .searchbar input,html.dark .searchbar select{background:#0F1A2B; color:var(--text);}
+html.dark .btn-outline{color:var(--text); border-color:var(--border);}
+html.dark .hist-row .top,html.dark .card h3,html.dark .hist-row .amt,html.dark #histSummaryAmt,html.dark .dash-box b,html.dark #cloudStatus{color:var(--text) !important;}
+html.fs-lg #app{zoom:1.12;}
+html.dark .item-card{background:#1B2B44;}
+html.dark .ac-list,html.dark .review-card{background:var(--surface); color:var(--text);}
+html.dark .price-input.overridden{background:#3A2F18;}
+html.dark .pref-row select{background:#0F1A2B; color:var(--text);}
+.dash-box:nth-child(1){background:rgba(6,182,212,.15);} .dash-box:nth-child(2){background:rgba(124,58,237,.13);} .dash-box:nth-child(3){background:rgba(245,158,11,.17);}
+.dash-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+.dash-box{background:var(--navy-pale); border-radius:10px; padding:9px 6px; text-align:center;}
+.dash-box b{display:block; font-size:16px; color:var(--navy); font-family:'Barlow Condensed',sans-serif; font-weight:800;}
+.dash-box span{font-size:11px; color:var(--text-dim); font-weight:600;}
+.dash-top{font-size:12.5px; color:var(--text-dim); margin-top:10px; line-height:1.7;}
+.pref-row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:14px;}
+.pref-row:last-child{border-bottom:none;}
+.pref-row input[type=checkbox]{width:20px; height:20px; accent-color:var(--amber-dark);}
+.pref-row select{padding:6px 8px; border-radius:8px; border:1.5px solid var(--border); background:#fff; font-size:14px;}
+details.hist-adv{padding:10px 12px;} details.hist-adv summary{font-weight:700; cursor:pointer; font-size:13.5px;}
+.sync-badge{cursor:pointer;}
 </style>
+<script>(function(){try{var p=JSON.parse(localStorage.getItem("sss_ui_prefs")||"{}");var h=document.documentElement;var d=p.theme==="dark"||(p.theme==="auto"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)h.classList.add("dark");if(p.font==="large")h.classList.add("fs-lg");if(p.accent)h.setAttribute("data-accent",p.accent);if(p.pinLock===false)h.classList.add("nopin");["discount","billtype","warranty","taxincl","pdfbtns","venus","excel"].forEach(function(k){if(p[k]===false)h.classList.add("off-"+k);});}catch(e){}})();</script>
 </head>
 <body>
 
@@ -275,7 +321,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
         </select>
       </div>
       <div class="field" id="discountField"><label>Discount %</label><input id="invoiceDiscount" type="number" step="0.01" min="0" max="100" placeholder="0"></div>
-      <label class="field" style="display:flex; align-items:center; gap:8px; flex-direction:row; cursor:pointer;">
+      <label id="termsToggleField" class="field" style="display:flex; align-items:center; gap:8px; flex-direction:row; cursor:pointer;">
         <input id="showTermsToggle" type="checkbox" checked style="width:16px; height:16px; margin:0;">
         <span style="font-weight:600; font-size:13px;">Show warranty/terms note on this bill</span>
       </label>
@@ -294,6 +340,7 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
 
   <!-- HISTORY -->
   <div class="view" id="view-history">
+    <div class="card" id="dashCard"></div>
     <div class="card" id="histSummaryCard" style="padding:14px 16px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
         <div style="font-size:22px; font-weight:800; color:var(--navy); font-family:'Barlow Condensed',sans-serif;" id="histSummaryAmt">₹0</div>
@@ -307,6 +354,18 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
     <div class="searchbar">
       <input type="text" id="historySearch" placeholder="Search name, mobile, or item…">
     </div>
+    <details class="card hist-adv" id="histAdv">
+      <summary>🎛 More filters (date range, amount)</summary>
+      <div class="row2" style="margin-top:10px;">
+        <div class="field"><label>From date</label><input type="date" id="hfFrom"></div>
+        <div class="field"><label>To date</label><input type="date" id="hfTo"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Min amount ₹</label><input type="number" id="hfMin" inputmode="numeric"></div>
+        <div class="field"><label>Max amount ₹</label><input type="number" id="hfMax" inputmode="numeric"></div>
+      </div>
+      <button type="button" class="btn btn-outline btn-block" id="hfClear">Clear filters</button>
+    </details>
     <div class="hist-controls-row">
       <div class="hist-filter" id="historyFilter">
         <button class="hist-filter-btn active" data-filter="normal">Invoice</button>
@@ -360,9 +419,36 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
     </div>
 
     <div class="card">
+      <h3>App Preferences</h3>
+      <div class="pref-row"><span>Colour style</span><select id="prefAccent"><option value="indigo">Indigo (default)</option><option value="teal">Ocean teal</option><option value="classic">Classic navy</option></select></div>
+      <div class="pref-row"><span>Theme</span><select id="prefTheme"><option value="light">Light</option><option value="dark">Dark</option><option value="auto">Auto (phone)</option></select></div>
+      <div class="pref-row"><span>Text size</span><select id="prefFont"><option value="normal">Normal</option><option value="large">Large</option></select></div>
+      <div class="pref-row"><span>Dashboard in History</span><input type="checkbox" id="prefDashboard"></div>
+      <div class="pref-row"><span>Customer auto-fill</span><input type="checkbox" id="prefAutofill"></div>
+      <div class="pref-row"><span>More History filters</span><input type="checkbox" id="prefFilters"></div>
+      <div class="pref-row"><span>WhatsApp button</span><input type="checkbox" id="prefWhatsapp"></div>
+      <div class="pref-row"><span>Weekly backup reminder</span><input type="checkbox" id="prefBackupRemind"></div>
+    </div>
+
+    <div class="card">
+      <h3>Show / Hide Options</h3>
+      <p style="font-size:13px; color:var(--text-dim); margin-top:0;">Turn off anything you don't use. Hidden options keep their default behaviour.</p>
+      <div class="pref-row"><span>Bill type (With / Without GST)</span><input type="checkbox" id="prefBilltype"></div>
+      <div class="pref-row"><span>Discount %</span><input type="checkbox" id="prefDiscount"></div>
+      <div class="pref-row"><span>Warranty / terms note options</span><input type="checkbox" id="prefWarranty"></div>
+      <div class="pref-row"><span>"Amount includes tax" per item</span><input type="checkbox" id="prefTaxincl"></div>
+      <div class="pref-row"><span>Download PDF &amp; Share buttons</span><input type="checkbox" id="prefPdfbtns"></div>
+      <div class="pref-row"><span>Venus quick-fill button</span><input type="checkbox" id="prefVenus"></div>
+      <div class="pref-row"><span>Export to Excel button</span><input type="checkbox" id="prefExcel"></div>
+      <div class="pref-row"><span>App Lock (PIN screen)</span><input type="checkbox" id="prefPinLock"></div>
+    </div>
+
+    <div class="card">
       <h3>Cloud Backup</h3>
       <p style="font-size:13px; color:var(--text-dim); margin-top:0;">Your data automatically syncs to the cloud, so it's safe even if you clear your browser or switch phones.</p>
       <div id="cloudStatus" style="font-size:13px; font-weight:600; color:var(--navy);">☁️ Connecting…</div>
+      <div id="cloudLast" style="font-size:12px; color:var(--text-dim); margin-top:3px;"></div>
+      <button type="button" class="btn btn-outline btn-block" id="syncNowBtn" style="margin-top:10px;">🔄 Sync now / Retry</button>
     </div>
 
     <div class="card">
@@ -382,6 +468,8 @@ input,select,textarea{font-family:inherit; font-size:15px; transition:border-col
         <button class="btn btn-outline" style="flex:1" id="exportBtn">⬇ Export</button>
         <button class="btn btn-outline" style="flex:1" id="importBtn">⬆ Import</button>
       </div>
+      <button type="button" class="btn btn-outline btn-block" id="shareBackupBtn" style="margin-top:8px;">📤 Share backup file (WhatsApp / Drive)</button>
+      <div id="lastBackupTxt" style="font-size:12px; color:var(--text-dim); margin-top:6px;"></div>
       <input type="file" id="importFile" accept="application/json" style="display:none;">
     </div>
   </div>
@@ -2024,8 +2112,10 @@ function renderHistory(){
   const filtered = [];
   invoices.forEach((inv, idx)=>{
     const typeOk = invoiceTypeOf(inv)===historyFilter;
-    const monthOk = searching || (inv.date||'').slice(0,7) === historySummaryYm;
-    if(typeOk && monthOk && invoiceMatchesSearch(inv, q)) filtered.push({inv, idx});
+    const hf = (typeof getHistFilters==='function') ? getHistFilters() : null;
+    const skipMonth = searching || (hf && (hf.from || hf.to));
+    const monthOk = skipMonth || (inv.date||'').slice(0,7) === historySummaryYm;
+    if(typeOk && monthOk && invoiceMatchesSearch(inv, q) && (!hf || hf.test(inv))) filtered.push({inv, idx});
   });
   renderHistorySummary(invoices.map((inv,idx)=>({inv,idx})));
   if(invoices.length===0){
@@ -2050,6 +2140,7 @@ function renderHistory(){
       <div class="hist-actions">
         <button class="btn btn-outline" data-view="${inv.id}">👁 View</button>
         <button class="btn btn-outline" data-edit="${inv.id}">✏️ Edit</button>
+        ${(typeof prefOn==='function' && prefOn('whatsapp')) ? `<button class="btn btn-outline" data-wa="${inv.id}" title="WhatsApp">💬</button>` : ''}
         <button class="btn btn-danger" data-del="${inv.id}">Delete</button>
       </div>`;
     box.appendChild(div);
@@ -2210,10 +2301,11 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
   reader.onload = (ev)=>{
     try{
       const data = JSON.parse(ev.target.result);
+      if(!confirm('Restore this backup?\n\nBills in the file: ' + (Array.isArray(data.invoices)?data.invoices.length:0) + '\nYour current bills: ' + invoices.length + '\n\nBills are merged (newest version of each bill wins); nothing is deleted.')){ e.target.value=''; return; }
       if(data.settings) settings = data.settings;
       if(data.overrides) overrides = data.overrides;
       if(data.customParts) customParts = data.customParts;
-      if(data.invoices){ invoices = data.invoices; invoices.forEach(inv=>{ if(inv && inv.id!==undefined) delete deletedInvoices[String(inv.id)]; stripInvSnapshot(inv); }); LS.set('sss_deleted', deletedInvoices); }
+      if(data.invoices){ data.invoices.forEach(inv=>{ if(inv && inv.id!==undefined) delete deletedInvoices[String(inv.id)]; stripInvSnapshot(inv); }); invoices = mergeInvoicesByLatest(invoices, data.invoices); LS.set('sss_deleted', deletedInvoices); }
       LS.set('sss_settings', settings); LS.set('sss_price_overrides', overrides);
       LS.set('sss_custom_parts', customParts); LS.set('sss_invoices', invoices);
       refreshParts(); renderPartList(); loadSettingsForm();
@@ -2282,170 +2374,243 @@ function mergeInvoicesByLatest(localList, remoteList){
   );
 }
 
-function applyCloudData(data){
-  // Keep cloud sync lightweight: invoice-only updates must not rebuild the
-  // entire parts/autocomplete UI. Only refresh those sections when their
-  // underlying data actually changed.
-  let settingsChanged = false, partsChanged = false, invoicesChanged = false;
-  mergeDeletedFrom(data.deleted);
-  if(data.settings){
-    // MERGE, don't replace. The cloud copy may come from an older app
-    // version that lacks newer migration flags (prefixFormatV2Applied,
-    // pinForceUpdated, ...). Replacing wholesale would erase those local
-    // flags and re-run one-time migrations on the next launch — resetting
-    // prefixes or the PIN. Local wins for any key the remote is missing.
-    const mergedSettings = Object.assign({}, settings, data.settings);
-    const oldKey = JSON.stringify(settings);
-    const newKey = JSON.stringify(mergedSettings);
-    if(oldKey !== newKey){ settings = mergedSettings; settingsChanged = true; }
-  }
-  if(data.overrides){
-    const oldKey = JSON.stringify(overrides);
-    const newKey = JSON.stringify(data.overrides);
-    if(oldKey !== newKey){ overrides = data.overrides; partsChanged = true; }
-  }
-  if(data.customParts){
-    const oldKey = JSON.stringify(customParts);
-    const newKey = JSON.stringify(data.customParts);
-    if(oldKey !== newKey){ customParts = data.customParts; partsChanged = true; }
-  }
-  if(data.invoices || data.deleted){
-    const before = invoices;
-    const merged = mergeInvoicesByLatest(invoices, data.invoices || []);
-    // Avoid another expensive render/localStorage write when nothing changed.
-    invoicesChanged = merged.length !== before.length || merged.some((inv,i)=>{
-      const a=before[i], b=inv;
-      return !a || !b || String(a.id)!==String(b.id) || Number(a.updatedAt||0)!==Number(b.updatedAt||0);
-    });
-    if(invoicesChanged) invoices = merged;
-  }
+/* ===================== Cloud sync v2 =====================
+   WHY THE OLD SYNC WAS SLOW: every bill, setting and price lived inside ONE
+   cloud node ("backup"). Each save re-uploaded that whole node (all bills)
+   and every device re-downloaded all of it again. Now each bill is its own
+   small node, so a save sends only the bill that changed, and other devices
+   receive only that bill. The old "backup" node is read once to migrate and
+   is then left untouched. */
+const V2 = 'backup/v2';
+let cloudMeta = {};          // invoiceId -> updatedAt that is known to be in the cloud
+let cloudDeletedKnown = {};  // invoiceId -> true when a delete marker exists in the cloud
+let cloudSimple = {settings:null, overrides:null, customParts:null}; // last known cloud value (stable JSON)
+let cloudOnline = false, initialLoaded = false, v2Ready = false;
+let invApplyTimer = null, partsApplyTimer = null;
 
-  if(settingsChanged) localStorage.setItem('sss_settings', JSON.stringify(settings));
-  if(partsChanged) {
+function stableStr(v){
+  if(v === null || typeof v !== 'object') return JSON.stringify(v);
+  if(Array.isArray(v)) return '[' + v.map(stableStr).join(',') + ']';
+  return '{' + Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+stableStr(v[k])).join(',') + '}';
+}
+function invTime(inv){ return Number(inv && inv.updatedAt) || Number(inv && inv.id) || 0; }
+function toArr(x){ return Array.isArray(x) ? x : (x && typeof x === 'object' ? Object.keys(x).map(k=>x[k]) : []); }
+function cloudClean(v){ return JSON.parse(JSON.stringify(v)); }
+function viewActive(n){ const el = document.getElementById('view-'+n); return !!(el && el.classList.contains('active')); }
+
+function scheduleInvApply(){
+  clearTimeout(invApplyTimer);
+  invApplyTimer = setTimeout(()=>{
+    invoices.sort((a,b)=>(Number(b.id)||0)-(Number(a.id)||0));
+    try{ localStorage.setItem('sss_invoices', JSON.stringify(invoices)); }catch(e){}
+    if(viewActive('history')) renderHistory();
+  }, 200);
+}
+function schedulePartsApply(){
+  clearTimeout(partsApplyTimer);
+  partsApplyTimer = setTimeout(()=>{ refreshParts(); renderPartList(); }, 200);
+}
+
+function onInvRemote(snap){
+  const inv = snap.val(); if(!inv || typeof inv !== 'object') return;
+  const id = String(snap.key), t = invTime(inv);
+  cloudMeta[id] = t;
+  if(deletedInvoices[id]) return;
+  if(inv.id === undefined) inv.id = isNaN(Number(id)) ? id : Number(id);
+  stripInvSnapshot(inv);
+  const i = invoices.findIndex(x=>String(x.id)===id);
+  if(i === -1) invoices.push(inv);
+  else if(t > invTime(invoices[i])) invoices[i] = inv;
+  else return;
+  scheduleInvApply();
+  if(v2Ready) toast('🔄 Updated from another device');
+}
+function onDelRemote(snap){
+  const id = String(snap.key);
+  cloudDeletedKnown[id] = true;
+  if(!deletedInvoices[id]){
+    deletedInvoices[id] = snap.val() || Date.now();
+    try{ localStorage.setItem('sss_deleted', JSON.stringify(deletedInvoices)); }catch(e){}
+  }
+  const i = invoices.findIndex(x=>String(x.id)===id);
+  if(i !== -1){ invoices.splice(i,1); scheduleInvApply(); }
+}
+function onDelRemoved(snap){
+  const id = String(snap.key);
+  delete cloudDeletedKnown[id];
+  if(deletedInvoices[id]){
+    delete deletedInvoices[id];
+    try{ localStorage.setItem('sss_deleted', JSON.stringify(deletedInvoices)); }catch(e){}
+  }
+}
+function onSimpleRemote(kind, val){
+  if(val === null || val === undefined){ cloudSimple[kind] = null; return; }
+  const str = stableStr(val);
+  if(str === cloudSimple[kind]) return;
+  cloudSimple[kind] = str;
+  if(kind === 'settings'){
+    const merged = Object.assign({}, settings, val);
+    if(stableStr(merged) !== stableStr(settings)){
+      settings = merged;
+      try{ localStorage.setItem('sss_settings', JSON.stringify(settings)); }catch(e){}
+      if(viewActive('settings')) loadSettingsForm();
+    }
+  } else if(kind === 'overrides'){
+    if(stableStr(overrides) !== str){
+      overrides = val;
+      try{ localStorage.setItem('sss_price_overrides', JSON.stringify(overrides)); }catch(e){}
+      schedulePartsApply();
+    }
+  } else {
+    const arr = Array.isArray(val) ? val : toArr(val);
+    if(stableStr(customParts) !== stableStr(arr)){
+      customParts = arr;
+      try{ localStorage.setItem('sss_custom_parts', JSON.stringify(customParts)); }catch(e){}
+      schedulePartsApply();
+    }
+  }
+}
+
+/* One-time move of the old single "backup" node into the new layout. */
+function migrateLegacy(old){
+  old = old || {};
+  mergeDeletedFrom(old.deleted);
+  invoices = mergeInvoicesByLatest(invoices, toArr(old.invoices));
+  if(old.settings && typeof old.settings === 'object') settings = Object.assign({}, settings, old.settings);
+  if(old.overrides && typeof old.overrides === 'object') overrides = Object.assign({}, old.overrides, overrides);
+  const parts = new Map();
+  toArr(old.customParts).concat(Array.isArray(customParts) ? customParts : []).forEach(p=>{
+    p = toArr(p); if(p.length && p[0]) parts.set(String(p[0]), p);
+  });
+  customParts = Array.from(parts.values());
+  try{
+    localStorage.setItem('sss_invoices', JSON.stringify(invoices));
+    localStorage.setItem('sss_settings', JSON.stringify(settings));
     localStorage.setItem('sss_price_overrides', JSON.stringify(overrides));
     localStorage.setItem('sss_custom_parts', JSON.stringify(customParts));
-    refreshParts();
-    renderPartList();
-  }
-  if(invoicesChanged) {
-    localStorage.setItem('sss_invoices', JSON.stringify(invoices));
-    if(document.getElementById('view-history').classList.contains('active')) renderHistory();
-  }
-  if(settingsChanged && document.getElementById('view-settings').classList.contains('active')) loadSettingsForm();
+  }catch(e){}
+  refreshParts(); renderPartList();
+  if(viewActive('history')) renderHistory();
+  const P = V2 + '/', up = {};
+  invoices.forEach(inv=>{
+    if(inv && inv.id !== undefined && inv.id !== null && !deletedInvoices[String(inv.id)]){
+      stripInvSnapshot(inv); up[P+'invoices/'+inv.id] = cloudClean(inv);
+    }
+  });
+  Object.keys(deletedInvoices).forEach(id=>{ up[P+'deleted/'+id] = deletedInvoices[id] || Date.now(); });
+  up[P+'settings'] = cloudClean(settings);
+  up[P+'overrides'] = cloudClean(overrides);
+  up[P+'customParts'] = cloudClean(customParts);
+  const keys = Object.keys(up), chunks = [];
+  for(let i=0;i<keys.length;i+=60){ const c = {}; keys.slice(i,i+60).forEach(k=>c[k]=up[k]); chunks.push(c); }
+  return chunks.reduce((pr,c)=>pr.then(()=>cloudDb.ref().update(c)), Promise.resolve())
+    .then(()=>cloudDb.ref(P+'meta/migrated').set(true));
 }
 
 function listenToCloud(){
   if(!cloudDb) return;
   setCloudStatus('syncing');
-  // One realtime listener keeps both devices live without polling.
-  cloudDb.ref('backup').on('value', snap=>{
-    const data = snap.val();
-    setCloudStatus('connected');
-    if(!data){ firstLoadDone = true; return; } // nothing in cloud yet - local data will push up on next change
-    // skip re-applying data this same device just wrote, and skip no-op updates
-    if(data.updatedAt && data.updatedAt === lastCloudUpdatedAt) { firstLoadDone = true; return; }
-    lastCloudUpdatedAt = data.updatedAt;
-    if(data.updatedBy === DEVICE_ID){ firstLoadDone = true; return; }
-    applyCloudData(data);
-    if(!firstLoadDone){
-      firstLoadDone = true;
-      toast('🔄 Synced with all your devices');
-    } else {
-      toast('🔄 Updated from another device');
-    }
-  }, err=>{ console.warn('Cloud sync listener failed', err); setCloudStatus('offline'); });
+  cloudDb.ref(V2 + '/meta/migrated').once('value')
+    .then(s=> s.val() === true ? null : cloudDb.ref('backup').once('value').then(sn=>migrateLegacy(sn.val())))
+    .catch(e=>console.warn('Cloud migration failed, will retry next launch', e))
+    .then(startV2Listeners);
+}
+function startV2Listeners(){
+  const base = cloudDb.ref(V2);
+  const bad = err=>{ console.warn('Cloud listener failed', err); setCloudStatus('offline'); };
+  const inv = base.child('invoices');
+  inv.on('child_added', onInvRemote, bad);
+  inv.on('child_changed', onInvRemote, bad);
+  // A bill vanishing from the cloud is never treated as a delete (only delete markers are); just forget it so it is re-uploaded if we still have it.
+  inv.on('child_removed', sn=>{ delete cloudMeta[String(sn.key)]; }, bad);
+  base.child('deleted').on('child_added', onDelRemote, bad);
+  base.child('deleted').on('child_removed', onDelRemoved, bad);
+  ['settings','overrides','customParts'].forEach(k=>base.child(k).on('value', s=>onSimpleRemote(k, s.val()), bad));
+  cloudDb.ref('.info/connected').on('value', s=>{
+    cloudOnline = !!s.val();
+    setCloudStatus(cloudOnline ? (cloudSyncing ? 'syncing' : 'connected') : 'offline');
+    if(cloudOnline && initialLoaded) pushToCloud();
+  });
+  // Pushing waits until everything already in the cloud has been received, so a
+  // fresh launch never re-uploads bills the cloud already has.
+  Promise.all(['invoices','deleted','settings','overrides','customParts'].map(k=>base.child(k).once('value'))).then(()=>{
+    initialLoaded = true; firstLoadDone = true;
+    setTimeout(()=>{ v2Ready = true; }, 1500);
+    pushToCloud();
+  }).catch(bad);
 }
 
 function pushToCloud(){
-  if(!cloudDb) return;
+  if(!cloudDb || !initialLoaded) return;
   clearTimeout(cloudSyncTimer);
   cloudSyncTimer = setTimeout(()=>doPushToCloud(0), 250);
 }
 
-// One-off manual fetch, used as a fallback for the always-on listener above.
-// On a mobile browser the live 'on value' socket can go quiet in the
-// background (screen off, app switched away, network change) and not
-// reconnect the instant the app is reopened, which is why a bill made on
-// one device sometimes doesn't appear on another until you leave the
-// screen and come back. Calling this whenever History is opened, or the
-// app becomes visible again, forces a fresh read instead of waiting on
-// that socket, so a single open shows the latest data.
-function pullFromCloudOnce(){
+// Re-connect on demand. The live connection can go quiet in the background; this
+// wakes it, and `force` fully resets it (used by the "Sync now" button).
+function pullFromCloudOnce(force){
   if(!cloudDb) return;
-  cloudDb.ref('backup').once('value').then(snap=>{
-    const data = snap.val();
-    if(!data) return;
-    if(data.updatedBy === DEVICE_ID) return;
-    applyCloudData(data);
-  }).catch(err=>{ console.warn('Manual cloud pull failed', err); });
+  try{
+    if(force){ cloudDb.goOffline(); setTimeout(()=>{ try{ cloudDb.goOnline(); }catch(e){} }, 400); }
+    else cloudDb.goOnline();
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') pullFromCloudOnce(); });
+
+function buildCloudUpdates(){
+  const P = V2 + '/', up = {};
+  const after = {meta:{}, gone:[], del:[], undel:[], simple:{}};
+  Object.keys(deletedInvoices).forEach(id=>{
+    if(!cloudDeletedKnown[id]){ up[P+'deleted/'+id] = deletedInvoices[id] || Date.now(); after.del.push(id); }
+    if(cloudMeta[id] !== undefined){ up[P+'invoices/'+id] = null; after.gone.push(id); }
+  });
+  invoices.forEach(inv=>{
+    if(!inv || inv.id === undefined || inv.id === null) return;
+    const id = String(inv.id);
+    if(deletedInvoices[id]) return;
+    const t = invTime(inv);
+    const restored = !!cloudDeletedKnown[id];
+    if(restored){ up[P+'deleted/'+id] = null; after.undel.push(id); }
+    if(restored || cloudMeta[id] === undefined || cloudMeta[id] < t){
+      stripInvSnapshot(inv);
+      up[P+'invoices/'+id] = cloudClean(inv); after.meta[id] = t;
+    }
+  });
+  [['settings',settings],['overrides',overrides],['customParts',customParts]].forEach(([k,v])=>{
+    const str = stableStr(v);
+    const empty = (str === '[]' || str === '{}' || str === 'null' || str === undefined);
+    if(empty && cloudSimple[k] === null) return;
+    if(str !== cloudSimple[k]){ up[P+k] = cloudClean(v); after.simple[k] = str; }
+  });
+  return {up, after};
 }
 
-document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'visible') pullFromCloudOnce();
-});
-
 function doPushToCloud(attempt){
-  if(!cloudDb) return;
+  if(!cloudDb || !initialLoaded) return;
+  let built;
+  try{ built = buildCloudUpdates(); }catch(e){ console.warn('Cloud push build failed', e); return; }
+  const keys = Object.keys(built.up);
+  if(!keys.length){ setCloudStatus(cloudOnline ? 'connected' : 'offline'); return; }
   cloudSyncing = true;
-  setCloudStatus('syncing');
-  const updatedAt = new Date().toISOString();
-
-  // Merge invoices inside a Firebase transaction instead of replacing the
-  // entire cloud array. This prevents an older copy on another device from
-  // overwriting a newer edit. Each invoice is compared by updatedAt.
-  cloudDb.ref('backup').transaction(current=>{
-    const base = current || {};
-    const remoteInvoices = Array.isArray(base.invoices) ? base.invoices : [];
-    const localInvoices = Array.isArray(invoices) ? invoices : [];
-    const byId = new Map();
-    const mergedDeleted = Object.assign({}, (base.deleted && typeof base.deleted === 'object') ? base.deleted : {}, deletedInvoices);
-
-    remoteInvoices.forEach(inv=>{
-      if(inv && inv.id !== undefined && inv.id !== null && !mergedDeleted[String(inv.id)]){ stripInvSnapshot(inv); byId.set(String(inv.id), inv); }
-    });
-    localInvoices.forEach(inv=>{
-      if(!inv || inv.id === undefined || inv.id === null) return;
-      const key = String(inv.id);
-      if(mergedDeleted[key]) return;
-      stripInvSnapshot(inv);
-      const remote = byId.get(key);
-      const localTime = Number(inv.updatedAt) || Number(inv.id) || 0;
-      const remoteTime = remote ? (Number(remote.updatedAt) || Number(remote.id) || 0) : -1;
-      if(!remote || localTime >= remoteTime) byId.set(key, inv);
-    });
-
-    const mergedInvoices = Array.from(byId.values()).sort((a,b)=>
-      (Number(b.id)||0) - (Number(a.id)||0)
-    );
-
-    const out = {
-      settings, overrides, customParts,
-      invoices: mergedInvoices,
-      updatedAt, updatedBy: DEVICE_ID
-    };
-    if(Object.keys(mergedDeleted).length) out.deleted = mergedDeleted;
-    return out;
-  }).then(result=>{
+  if(cloudOnline) setCloudStatus('syncing');
+  const chunks = [];
+  for(let i=0;i<keys.length;i+=60){ const c = {}; keys.slice(i,i+60).forEach(k=>c[k]=built.up[k]); chunks.push(c); }
+  Promise.all(chunks.map(c=>cloudDb.ref().update(c))).then(()=>{
     cloudSyncing = false;
-    lastCloudUpdatedAt = updatedAt;
-    if(result && result.snapshot && result.snapshot.val()){
-      const merged = result.snapshot.val();
-      mergeDeletedFrom(merged.deleted);
-      if(Array.isArray(merged.invoices)){
-        // MERGE (don't overwrite): a bill saved while this slow sync was in
-        // flight must not be wiped out by the older result.
-        invoices = mergeInvoicesByLatest(invoices, merged.invoices);
-        try{ localStorage.setItem('sss_invoices', JSON.stringify(invoices)); }catch(e){}
-      }
-    }
-    setCloudStatus('connected');
+    const a = built.after;
+    Object.assign(cloudMeta, a.meta);
+    a.gone.forEach(id=>{ delete cloudMeta[id]; });
+    a.del.forEach(id=>{ cloudDeletedKnown[id] = true; });
+    a.undel.forEach(id=>{ delete cloudDeletedKnown[id]; });
+    Object.keys(a.simple).forEach(k=>{ cloudSimple[k] = a.simple[k]; });
+    setCloudStatus(cloudOnline ? 'connected' : 'offline');
   }).catch(err=>{
     cloudSyncing = false;
     console.warn('Cloud save failed (attempt ' + (attempt+1) + ')', err);
-    const nextAttempt = attempt + 1;
-    if(nextAttempt <= 4){
+    const next = attempt + 1;
+    if(next <= 4){
       setCloudStatus('syncing');
-      setTimeout(()=>doPushToCloud(nextAttempt), Math.min(1500 * Math.pow(2, attempt), 15000));
+      setTimeout(()=>doPushToCloud(next), Math.min(1500 * Math.pow(2, attempt), 15000));
     } else {
       setCloudStatus('offline');
       toast('⚠ Sync failed — saved on this device only, will retry later');
@@ -2583,6 +2748,174 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('service-worker.js').catch(()=>{});
   });
 }
+</script>
+
+<script>
+/* ===================== v2 additions ===================== */
+(function(){
+  const PK='sss_ui_prefs';
+  const DEF={theme:'light',accent:'indigo',discount:true,billtype:true,warranty:true,taxincl:true,pdfbtns:true,venus:true,excel:true,pinLock:true,font:'normal',dashboard:true,autofill:true,filters:true,whatsapp:true,backupRemind:true,lastBackup:0};
+  let prefs=Object.assign({},DEF);
+  try{ prefs=Object.assign({},DEF,JSON.parse(localStorage.getItem(PK)||'{}')); }catch(e){}
+  function savePrefs(){ try{ localStorage.setItem(PK,JSON.stringify(prefs)); }catch(e){} }
+  window.prefOn=function(k){ return !!prefs[k]; };
+  const $=id=>document.getElementById(id);
+  const mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+
+  function applyPrefs(){
+    const dark=prefs.theme==='dark'||(prefs.theme==='auto'&&mq&&mq.matches);
+    document.documentElement.classList.toggle('dark',!!dark);
+    document.documentElement.classList.toggle('fs-lg',prefs.font==='large');
+    document.documentElement.setAttribute('data-accent',prefs.accent||'indigo');
+    ['discount','billtype','warranty','taxincl','pdfbtns','venus','excel'].forEach(k=>document.documentElement.classList.toggle('off-'+k,prefs[k]===false));
+    document.documentElement.classList.toggle('nopin',prefs.pinLock===false);
+    $('dashCard').style.display=prefs.dashboard?'':'none';
+    $('histAdv').style.display=prefs.filters?'':'none';
+    const chat=$('pdfViewChatBtn'); if(chat) chat.style.display=prefs.whatsapp?'':'none';
+    $('buyerName').setAttribute('list',prefs.autofill?'custList':'');
+    if(!prefs.autofill) $('buyerName').removeAttribute('list');
+  }
+  if(mq&&mq.addEventListener) mq.addEventListener('change',applyPrefs);
+
+  /* ---- Settings controls ---- */
+  function bindPrefs(){
+    $('prefTheme').value=prefs.theme; $('prefFont').value=prefs.font;
+    [['prefDashboard','dashboard'],['prefAutofill','autofill'],['prefFilters','filters'],['prefWhatsapp','whatsapp'],['prefBackupRemind','backupRemind'],['prefBilltype','billtype'],['prefDiscount','discount'],['prefWarranty','warranty'],['prefTaxincl','taxincl'],['prefPdfbtns','pdfbtns'],['prefVenus','venus'],['prefExcel','excel']]
+      .forEach(([id,k])=>{ $(id).checked=!!prefs[k]; $(id).addEventListener('change',()=>{ prefs[k]=$(id).checked; savePrefs(); applyPrefs(); renderHistory(); }); });
+    $('prefAccent').value=prefs.accent||'indigo';
+    $('prefAccent').addEventListener('change',()=>{ prefs.accent=$('prefAccent').value; savePrefs(); applyPrefs(); });
+    $('prefPinLock').checked=prefs.pinLock!==false;
+    $('prefPinLock').addEventListener('change',()=>{
+      if(!$('prefPinLock').checked){
+        const entered=prompt('Enter the current 4-digit App Lock code to turn the lock off');
+        if(entered===null || entered.trim()!==String(settings.appPin||'1234')){ $('prefPinLock').checked=true; if(entered!==null) toast('Wrong code — App Lock stays on'); return; }
+      }
+      prefs.pinLock=$('prefPinLock').checked; savePrefs(); applyPrefs();
+    });
+    $('prefTheme').addEventListener('change',()=>{ prefs.theme=$('prefTheme').value; savePrefs(); applyPrefs(); });
+    $('prefFont').addEventListener('change',()=>{ prefs.font=$('prefFont').value; savePrefs(); applyPrefs(); });
+  }
+
+  /* ---- Customer auto-fill (built from saved bills, so it syncs across devices) ---- */
+  const dl=document.createElement('datalist'); dl.id='custList'; document.body.appendChild(dl);
+  function customerMap(){
+    const m=new Map();
+    invoices.forEach(inv=>{
+      if(!inv||!inv.buyer||!inv.buyer.name||!inv.buyer.name.trim()) return;
+      const k=inv.buyer.name.trim().toLowerCase(), t=Number(inv.id)||0, cur=m.get(k);
+      if(!cur||t>cur.t) m.set(k,{t,b:inv.buyer});
+    });
+    return m;
+  }
+  function refreshCustList(){
+    dl.innerHTML=Array.from(customerMap().values()).sort((a,b)=>b.t-a.t).slice(0,300)
+      .map(c=>'<option value="'+esc(c.b.name.trim())+'"></option>').join('');
+  }
+  function fillCustomer(){
+    if(!prefs.autofill) return;
+    const name=$('buyerName').value.trim().toLowerCase(); if(!name) return;
+    const c=customerMap().get(name); if(!c) return;
+    const map=[['buyerMobile','mobile'],['buyerAddress','address'],['buyerGstin','gstin'],['buyerState','stateCode']];
+    let n=0;
+    map.forEach(([id,k])=>{ const el=$(id); if(el&&!el.value.trim()&&c.b[k]){ el.value=c.b[k]; n++; } });
+    if(n) toast('Customer details filled');
+  }
+  $('buyerName').addEventListener('focus',refreshCustList);
+  $('buyerName').addEventListener('change',fillCustomer);
+  $('buyerName').addEventListener('blur',fillCustomer);
+
+  /* ---- History advanced filters ---- */
+  window.getHistFilters=function(){
+    if(!prefs.filters) return null;
+    const from=$('hfFrom').value, to=$('hfTo').value, mn=parseFloat($('hfMin').value), mx=parseFloat($('hfMax').value);
+    if(!from&&!to&&isNaN(mn)&&isNaN(mx)) return null;
+    return {from,to,test:function(inv){
+      const d=inv.date||''; if(from&&d<from) return false; if(to&&d>to) return false;
+      const a=(inv.totals&&inv.totals.rounded)||0; if(!isNaN(mn)&&a<mn) return false; if(!isNaN(mx)&&a>mx) return false; return true; }};
+  };
+  ['hfFrom','hfTo','hfMin','hfMax'].forEach(id=>$(id).addEventListener('input',()=>renderHistory()));
+  $('hfClear').addEventListener('click',()=>{ ['hfFrom','hfTo','hfMin','hfMax'].forEach(id=>$(id).value=''); renderHistory(); });
+
+  /* ---- Dashboard ---- */
+  function fyStart(dateStr){ const y=+dateStr.slice(0,4), m=+dateStr.slice(5,7); return m>=4?y:y-1; }
+  function renderDash(){
+    const box=$('dashCard'); if(!box||!prefs.dashboard) return;
+    const today=localTodayISO(), ym=localCurrentYm(), fy=fyStart(today);
+    const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-1);
+    const lastYm=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    let t={a:0,n:0}, m={a:0,n:0}, f={a:0,n:0}, lm=0; const cust={};
+    invoices.forEach(inv=>{
+      const dt=inv.date||''; if(dt.length<10) return; const a=(inv.totals&&inv.totals.rounded)||0;
+      if(dt===today){ t.a+=a; t.n++; }
+      if(dt.slice(0,7)===ym){ m.a+=a; m.n++; }
+      if(dt.slice(0,7)===lastYm) lm+=a;
+      if(fyStart(dt)===fy){ f.a+=a; f.n++; const k=((inv.buyer&&inv.buyer.name)||'—').trim(); cust[k]=(cust[k]||0)+a; }
+    });
+    const top=Object.entries(cust).sort((x,y)=>y[1]-x[1]).slice(0,3);
+    let trend='';
+    if(lm>0){ const p=Math.round((m.a-lm)/lm*100); trend='<div class="dash-top">This month vs last month: <b>'+(p>=0?'▲ ':'▼ ')+Math.abs(p)+'%</b></div>'; }
+    const bx=(l,o)=>'<div class="dash-box"><b>₹'+fmt(o.a)+'</b><span>'+l+' · '+o.n+' bills</span></div>';
+    box.innerHTML='<h3 style="margin-top:0;">Dashboard</h3><div class="dash-grid">'+bx('Today',t)+bx('This month',m)+bx('This FY',f)+'</div>'+trend+
+      (top.length?'<div class="dash-top"><b>Top customers (FY):</b><br>'+top.map((c,i)=>(i+1)+'. '+esc(c[0])+' — ₹'+fmt(c[1])).join('<br>')+'</div>':'');
+  }
+  const _rh=window.renderHistory;
+  window.renderHistory=function(){ _rh.apply(this,arguments); try{ renderDash(); }catch(e){ console.warn(e); } };
+
+  /* ---- WhatsApp ---- */
+  function whatsappInvoice(inv){
+    if(!inv) return;
+    let mobile=((inv.buyer&&inv.buyer.mobile)||'').replace(/\D/g,'');
+    while(mobile.length>10&&mobile.charAt(0)==='0') mobile=mobile.slice(1);
+    if(!mobile){ toast('⚠ No mobile number saved for this bill'); return; }
+    if(mobile.length===10) mobile='91'+mobile;
+    const msg='Hello '+((inv.buyer&&inv.buyer.name)||'')+',\nYour invoice '+(inv.invoiceNo||'')+' dated '+(inv.date||'')+' for ₹'+fmt((inv.totals&&inv.totals.rounded)||0)+' is ready.\nThank you,\n'+settings.companyName;
+    window.open('https://wa.me/'+mobile+'?text='+encodeURIComponent(msg),'_blank');
+  }
+  (function(){ const b=$('pdfViewChatBtn'); const nb=b.cloneNode(true); b.replaceWith(nb);
+    nb.addEventListener('click',()=>whatsappInvoice(currentlyViewedInvoice)); })();
+  $('historyList').addEventListener('click',e=>{
+    const w=e.target.closest('[data-wa]'); if(!w) return;
+    const inv=invoices.find(x=>String(x.id)===String(w.dataset.wa)); whatsappInvoice(inv);
+  });
+
+  /* ---- Backup: share file + reminder ---- */
+  function backupText(){ const t=prefs.lastBackup; $('lastBackupTxt').textContent=t?('Last backup: '+new Date(t).toLocaleString()):'No backup taken from this device yet.'; }
+  $('exportBtn').addEventListener('click',()=>{ prefs.lastBackup=Date.now(); savePrefs(); backupText(); });
+  $('shareBackupBtn').addEventListener('click',()=>{
+    const data={settings,overrides,customParts,invoices,exportedAt:new Date().toISOString()};
+    const name='sss-invoice-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    const file=new File([JSON.stringify(data,null,2)],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:'Invoice backup'}).then(()=>{ prefs.lastBackup=Date.now(); savePrefs(); backupText(); }).catch(()=>{});
+    } else { $('exportBtn').click(); }
+  });
+  setTimeout(()=>{
+    if(prefs.backupRemind && invoices.length>0 && Date.now()-(prefs.lastBackup||0)>7*864e5){
+      toast('💾 Backup is over 7 days old — take one in Settings');
+    }
+  },4000);
+
+  /* ---- Sync status, manual retry, auto retry ---- */
+  let lastState='syncing', lastSync=0;
+  const _scs=window.setCloudStatus;
+  window.setCloudStatus=function(state){
+    _scs.apply(this,arguments);
+    lastState=state; if(state==='connected') lastSync=Date.now();
+    const bt=$('syncBadgeText'); if(bt&&state==='offline') bt.textContent='Offline · tap to retry';
+    const l=$('cloudLast'); if(l) l.textContent=lastSync?('Last synced: '+new Date(lastSync).toLocaleTimeString()):'';
+  };
+  function syncNow(silent){
+    if(typeof cloudDb==='undefined'||!cloudDb){ if(!silent) toast('Cloud not connected yet — check internet'); return; }
+    if(!silent) toast('Syncing…');
+    pushToCloud(); pullFromCloudOnce(!silent);
+  }
+  $('syncBadge').addEventListener('click',()=>syncNow(false));
+  $('syncNowBtn').addEventListener('click',()=>syncNow(false));
+  window.addEventListener('online',()=>syncNow(true));
+  setInterval(()=>{ if(lastState==='offline') syncNow(true); },60000);
+
+  bindPrefs(); applyPrefs(); backupText(); refreshCustList(); try{ renderHistory(); }catch(e){ console.warn(e); }
+})();
 </script>
 </body>
 </html>
