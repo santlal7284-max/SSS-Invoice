@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sss-invoice-v4';
+const CACHE_NAME = 'sss-invoice-v5';
 const ASSETS = [
   './',
   './index.html',
