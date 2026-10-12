@@ -219,8 +219,54 @@ html[data-accent="classic"]{--g1:#12253F; --g2:#1B3355; --tabbg:#12253F; --navy:
 #histSummaryCard{background:linear-gradient(135deg,var(--navy-pale),var(--surface));}
 /* show / hide existing options */
 html.off-billtype #gstToggleField,html.off-discount #discountField,html.off-warranty #warrantyMonthsField,html.off-warranty #termsToggleField,
-html.off-taxincl .item-card>label,html.off-pdfbtns #printInvoiceBtn,html.off-pdfbtns #shareInvoiceBtn,html.off-venus #venusFillBtn,html.off-excel #exportGstExcelBtn{display:none !important;}
+html.off-taxincl .item-card>label,html.off-venus #venusFillBtn,html.off-excel #exportGstExcelBtn{display:none !important;}
 html.nopin .lock-overlay{display:none !important;}
+/* ===== item search, service, discount ===== */
+.multi-search{margin-bottom:10px;}
+.multi-search>input{width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid var(--g2); background:var(--surface); font-size:14.5px;}
+.ms-list{margin-top:8px; border:1.5px solid var(--border); border-radius:12px; background:var(--surface); max-height:300px; overflow-y:auto;}
+.ms-head{position:sticky; top:0; z-index:2; background:var(--navy-pale); display:flex; justify-content:space-between; align-items:center; padding:8px 10px; font-size:12px; font-weight:700; color:var(--text-dim);}
+.ms-done{border:none; background:linear-gradient(135deg,var(--g1),var(--g2)); color:#fff; font-weight:700; font-size:12.5px; padding:6px 12px; border-radius:20px;}
+.ms-item{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:9px 10px; border-top:1px solid var(--border); font-size:13.5px; cursor:pointer;}
+.ms-item:active{background:var(--navy-pale);}
+.ms-item.on{background:rgba(52,199,89,.12);}
+.ms-code{font-weight:700; color:var(--g1); font-size:12px;}
+.ms-price{font-size:12px; color:var(--text-dim); margin-top:1px;}
+.ms-tick{flex:none; min-width:42px; text-align:center; font-weight:800; color:var(--g1); background:var(--navy-pale); border-radius:20px; padding:4px 8px; font-size:13px;}
+.ms-item.on .ms-tick{background:#34C759; color:#fff;}
+.ms-empty{padding:14px; text-align:center; color:var(--text-dim); font-size:13px;}
+.it-code{font-size:11.5px; font-weight:700; color:var(--g1); margin:2px 0 6px; padding-right:30px;}
+.svc-box{margin-top:12px; border:1.5px dashed var(--g2); border-radius:12px; padding:10px 12px 12px; background:var(--navy-pale);}
+.svc-title{font-weight:800; font-size:13.5px; margin-bottom:8px; color:var(--g1);}
+.svc-note{font-size:11px; color:var(--text-dim); margin-top:6px;}
+.disc-row{display:flex; gap:10px;}
+.dbox{position:relative; width:104px;}
+.dbox input{width:100%; padding:8px 26px 8px 10px; border-radius:9px; text-align:right; font-weight:700;}
+.dbox i{position:absolute; right:9px; top:50%; transform:translateY(-50%); font-style:normal; font-weight:800; color:var(--text-dim); font-size:13px; pointer-events:none;}
+/* ===== Price Master look ===== */
+.master-hero{background:linear-gradient(135deg,var(--g1),var(--g2)); color:#fff; border-radius:16px; padding:14px 16px; margin-bottom:12px; box-shadow:0 6px 18px var(--shadowc); position:relative; overflow:hidden;}
+.master-hero::after{content:'₹'; position:absolute; right:14px; top:-16px; font-size:96px; font-weight:800; opacity:.14;}
+.mh-t{font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:800; letter-spacing:.02em;}
+.mh-s{font-size:12.5px; opacity:.88;}
+.searchbar input{border-radius:999px; padding:12px 16px 12px 42px; background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364668A' stroke-width='2.2' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><path d='M20 20l-3.5-3.5'/></svg>") no-repeat 15px center; background-size:18px; box-shadow:var(--shadow-sm);}
+.part-row{border:none; border-radius:16px; padding:12px 14px 12px 18px; position:relative; overflow:hidden; box-shadow:0 2px 10px rgba(30,27,75,.09);}
+.part-row::before{content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:linear-gradient(var(--g1),var(--accent2));}
+.part-code{background:var(--navy-pale); color:var(--g1); padding:3px 10px; border-radius:8px; font-size:12px;}
+.part-cat{padding:3px 9px; border-radius:20px; font-weight:700;}
+.part-prices{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.ptile{display:block; border-radius:12px; padding:7px 10px 6px;}
+.ptile.pf{background:rgba(6,182,212,.13);}
+.ptile.pc{background:rgba(124,58,237,.11);}
+.ptile .lbl{display:block; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim);}
+.ptile .pin{display:flex; align-items:center; gap:3px;}
+.ptile .pin b{font-size:16px; color:var(--g1);}
+.ptile .price-input{width:100%; min-width:0; border:none; background:transparent; font-size:19px; font-weight:800; padding:2px 0; text-align:left; color:var(--text); font-family:'Barlow Condensed',sans-serif;}
+.ptile .price-input:focus{outline:none; box-shadow:none;}
+.ptile .price-input.overridden{background:transparent; color:var(--amber-dark);}
+.ptile:focus-within{box-shadow:0 0 0 2px var(--g2) inset;}
+.part-prices .revert-btn{grid-column:1/-1; justify-self:end; font-size:12px; font-weight:700;}
+html.dark .ptile .price-input{background:transparent !important;}
+html.dark .ms-list,html.dark .multi-search>input{background:var(--surface) !important;}
 /* ===== v2 additions ===== */
 html.dark{--bg:#0F1A2B; --surface:#18263B; --border:#2A3B54; --text:#E6EDF6; --text-dim:#9AABBF; --navy-pale:#1F3250; color-scheme:dark;}
 html.dark input,html.dark select,html.dark textarea{background:#0F1A2B !important; color:var(--text) !important; border-color:var(--border) !important;}
@@ -240,12 +286,19 @@ html.dark .pref-row select{background:#0F1A2B; color:var(--text);}
 .dash-top{font-size:12.5px; color:var(--text-dim); margin-top:10px; line-height:1.7;}
 .pref-row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:14px;}
 .pref-row:last-child{border-bottom:none;}
-.pref-row input[type=checkbox]{width:20px; height:20px; accent-color:var(--amber-dark);}
+.pref-sub{font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); margin:16px 0 2px;}
+.pref-sub:first-of-type{margin-top:6px;}
+.pref-row input[type=checkbox]{-webkit-appearance:none; appearance:none; flex:none; width:50px; height:30px; min-width:50px; border-radius:30px; background:#C9CDD8; position:relative; transition:background .25s; border:none; padding:0; margin:0; cursor:pointer; outline:none; -webkit-tap-highlight-color:transparent;}
+.pref-row input[type=checkbox]::after{content:''; position:absolute; top:2px; left:2px; width:26px; height:26px; border-radius:50%; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,.3); transition:transform .25s cubic-bezier(.4,0,.2,1);}
+.pref-row input[type=checkbox]:checked{background:#34C759;}
+.pref-row input[type=checkbox]:checked::after{transform:translateX(20px);}
+html.dark .pref-row input[type=checkbox]{background:#3A4660 !important;}
+html.dark .pref-row input[type=checkbox]:checked{background:#34C759 !important;}
 .pref-row select{padding:6px 8px; border-radius:8px; border:1.5px solid var(--border); background:#fff; font-size:14px;}
 details.hist-adv{padding:10px 12px;} details.hist-adv summary{font-weight:700; cursor:pointer; font-size:13.5px;}
 .sync-badge{cursor:pointer;}
 </style>
-<script>(function(){try{var p=JSON.parse(localStorage.getItem("sss_ui_prefs")||"{}");var h=document.documentElement;var d=p.theme==="dark"||(p.theme==="auto"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)h.classList.add("dark");if(p.font==="large")h.classList.add("fs-lg");if(p.accent)h.setAttribute("data-accent",p.accent);if(p.pinLock===false)h.classList.add("nopin");["discount","billtype","warranty","taxincl","pdfbtns","venus","excel"].forEach(function(k){if(p[k]===false)h.classList.add("off-"+k);});}catch(e){}})();</script>
+<script>(function(){try{var p=JSON.parse(localStorage.getItem("sss_ui_prefs")||"{}");var h=document.documentElement;var d=p.theme==="dark"||(p.theme==="auto"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)h.classList.add("dark");if(p.font==="large")h.classList.add("fs-lg");if(p.accent)h.setAttribute("data-accent",p.accent);if(p.pinLock===false)h.classList.add("nopin");["discount","billtype","warranty","taxincl","venus","excel"].forEach(function(k){if(p[k]===false)h.classList.add("off-"+k);});}catch(e){}})();</script>
 </head>
 <body>
 
@@ -278,9 +331,10 @@ details.hist-adv{padding:10px 12px;} details.hist-adv summary{font-weight:700; c
 
   <!-- PRICE MASTER -->
   <div class="view active" id="view-master">
+    <div class="master-hero"><div class="mh-t">Price Master</div><div class="mh-s">Search a part, then tap a price to edit it</div></div>
     <div class="searchbar">
       <input type="text" id="searchInput" placeholder="Search part code or description…">
-      <select id="categoryFilter"><option value="">All Categories</option></select>
+      <select id="categoryFilter" style="display:none;"><option value="">All Categories</option></select>
     </div>
     <div class="result-count" id="resultCount"></div>
     <div id="partList"></div>
@@ -293,8 +347,8 @@ details.hist-adv{padding:10px 12px;} details.hist-adv summary{font-weight:700; c
     <div class="card">
       <h3>Billing To</h3>
       <button type="button" class="btn btn-outline btn-block" id="venusFillBtn" style="display:none; margin-bottom:12px;">⚡ Fill Venus Home Appliances Details</button>
+      <div class="field"><label>Mobile Number <span style="font-weight:500; color:var(--text-dim);">(saved customers fill automatically)</span></label><input id="buyerMobile" type="tel" inputmode="numeric" placeholder="e.g. 9876543210" maxlength="15" autocomplete="off"></div>
       <div class="field"><label>Customer / Company Name</label><input id="buyerName" placeholder="e.g. Venus Home Appliances Pvt. Ltd."></div>
-      <div class="field"><label>Mobile Number</label><input id="buyerMobile" type="tel" placeholder="e.g. 9876543210" maxlength="15"></div>
       <div class="field"><label>Address</label><input id="buyerAddress" placeholder="Address"></div>
       <div class="row2">
         <div class="field"><label>GSTIN</label><input id="buyerGstin" placeholder="07AABCXXXXXP1ZD"></div>
@@ -308,8 +362,20 @@ details.hist-adv{padding:10px 12px;} details.hist-adv summary{font-weight:700; c
 
     <div class="card">
       <h3>Items</h3>
+      <div class="multi-search">
+        <input id="itemSearch" type="text" placeholder="🔎 Search part code or name — tap parts to add" autocomplete="off">
+        <div id="itemSearchResults"></div>
+      </div>
       <div id="itemsContainer"></div>
-      <button class="btn btn-outline btn-block" id="addItemBtn">+ Add Item</button>
+      <button class="btn btn-outline btn-block" id="addItemBtn">+ Add manual item</button>
+      <div class="svc-box">
+        <div class="svc-title">🛠 Service Charges</div>
+        <div class="row2">
+          <div class="field" style="margin-bottom:0;"><label>Description</label><input id="svcDesc" placeholder="Service Charges"></div>
+          <div class="field" style="margin-bottom:0;"><label>Amount ₹</label><input id="svcAmt" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></div>
+        </div>
+        <div class="svc-note">GST is added on this only for With-GST bills.</div>
+      </div>
     </div>
 
     <div class="card" id="billOptionsCard">
@@ -320,7 +386,11 @@ details.hist-adv{padding:10px 12px;} details.hist-adv summary{font-weight:700; c
           <option value="without">Without GST</option>
         </select>
       </div>
-      <div class="field" id="discountField"><label>Discount %</label><input id="invoiceDiscount" type="number" step="0.01" min="0" max="100" placeholder="0"></div>
+      <div class="field" id="discountField"><label>Discount</label>
+        <div class="disc-row">
+          <div class="dbox"><input id="invoiceDiscount" type="number" step="0.01" min="0" max="100" placeholder="0" inputmode="decimal"><i>%</i></div>
+          <div class="dbox"><input id="invoiceDiscountAmt" type="number" step="0.01" min="0" placeholder="0" inputmode="decimal"><i>₹</i></div>
+        </div></div>
       <label id="termsToggleField" class="field" style="display:flex; align-items:center; gap:8px; flex-direction:row; cursor:pointer;">
         <input id="showTermsToggle" type="checkbox" checked style="width:16px; height:16px; margin:0;">
         <span style="font-weight:600; font-size:13px;">Show warranty/terms note on this bill</span>
@@ -377,6 +447,27 @@ details.hist-adv{padding:10px 12px;} details.hist-adv summary{font-weight:700; c
 
   <!-- SETTINGS -->
   <div class="view" id="view-settings">
+    <div class="card prefs-card">
+      <h3>Preferences</h3>
+      <div class="pref-sub">Look &amp; feel</div>
+      <div class="pref-row"><span>Colour style</span><select id="prefAccent"><option value="indigo">Indigo (default)</option><option value="teal">Ocean teal</option><option value="classic">Classic navy</option></select></div>
+      <div class="pref-row"><span>Theme</span><select id="prefTheme"><option value="light">Light</option><option value="dark">Dark</option><option value="auto">Auto (phone)</option></select></div>
+      <div class="pref-row"><span>Text size</span><select id="prefFont"><option value="normal">Normal</option><option value="large">Large</option></select></div>
+      <div class="pref-sub">Features</div>
+      <div class="pref-row"><span>Dashboard in History</span><input type="checkbox" id="prefDashboard"></div>
+      <div class="pref-row"><span>Customer auto-fill (by mobile)</span><input type="checkbox" id="prefAutofill"></div>
+      <div class="pref-row"><span>More History filters</span><input type="checkbox" id="prefFilters"></div>
+      <div class="pref-sub">Show on bill form</div>
+      <div class="pref-row"><span>Bill type (With / Without GST)</span><input type="checkbox" id="prefBilltype"></div>
+      <div class="pref-row"><span>Discount</span><input type="checkbox" id="prefDiscount"></div>
+      <div class="pref-row"><span>Warranty / terms note options</span><input type="checkbox" id="prefWarranty"></div>
+      <div class="pref-row"><span>"Amount includes tax" per item</span><input type="checkbox" id="prefTaxincl"></div>
+      <div class="pref-row"><span>Venus quick-fill button</span><input type="checkbox" id="prefVenus"></div>
+      <div class="pref-row"><span>Export to Excel button</span><input type="checkbox" id="prefExcel"></div>
+      <div class="pref-sub">Security</div>
+      <div class="pref-row"><span>App Lock (PIN screen)</span><input type="checkbox" id="prefPinLock"></div>
+    </div>
+
     <div class="card">
       <h3>Company Details</h3>
       <div class="field"><label>Company Name</label><input id="setCompanyName"></div>
@@ -419,31 +510,6 @@ details.hist-adv{padding:10px 12px;} details.hist-adv summary{font-weight:700; c
     </div>
 
     <div class="card">
-      <h3>App Preferences</h3>
-      <div class="pref-row"><span>Colour style</span><select id="prefAccent"><option value="indigo">Indigo (default)</option><option value="teal">Ocean teal</option><option value="classic">Classic navy</option></select></div>
-      <div class="pref-row"><span>Theme</span><select id="prefTheme"><option value="light">Light</option><option value="dark">Dark</option><option value="auto">Auto (phone)</option></select></div>
-      <div class="pref-row"><span>Text size</span><select id="prefFont"><option value="normal">Normal</option><option value="large">Large</option></select></div>
-      <div class="pref-row"><span>Dashboard in History</span><input type="checkbox" id="prefDashboard"></div>
-      <div class="pref-row"><span>Customer auto-fill</span><input type="checkbox" id="prefAutofill"></div>
-      <div class="pref-row"><span>More History filters</span><input type="checkbox" id="prefFilters"></div>
-      <div class="pref-row"><span>WhatsApp button</span><input type="checkbox" id="prefWhatsapp"></div>
-      <div class="pref-row"><span>Weekly backup reminder</span><input type="checkbox" id="prefBackupRemind"></div>
-    </div>
-
-    <div class="card">
-      <h3>Show / Hide Options</h3>
-      <p style="font-size:13px; color:var(--text-dim); margin-top:0;">Turn off anything you don't use. Hidden options keep their default behaviour.</p>
-      <div class="pref-row"><span>Bill type (With / Without GST)</span><input type="checkbox" id="prefBilltype"></div>
-      <div class="pref-row"><span>Discount %</span><input type="checkbox" id="prefDiscount"></div>
-      <div class="pref-row"><span>Warranty / terms note options</span><input type="checkbox" id="prefWarranty"></div>
-      <div class="pref-row"><span>"Amount includes tax" per item</span><input type="checkbox" id="prefTaxincl"></div>
-      <div class="pref-row"><span>Download PDF &amp; Share buttons</span><input type="checkbox" id="prefPdfbtns"></div>
-      <div class="pref-row"><span>Venus quick-fill button</span><input type="checkbox" id="prefVenus"></div>
-      <div class="pref-row"><span>Export to Excel button</span><input type="checkbox" id="prefExcel"></div>
-      <div class="pref-row"><span>App Lock (PIN screen)</span><input type="checkbox" id="prefPinLock"></div>
-    </div>
-
-    <div class="card">
       <h3>Cloud Backup</h3>
       <p style="font-size:13px; color:var(--text-dim); margin-top:0;">Your data automatically syncs to the cloud, so it's safe even if you clear your browser or switch phones.</p>
       <div id="cloudStatus" style="font-size:13px; font-weight:600; color:var(--navy);">☁️ Connecting…</div>
@@ -470,7 +536,7 @@ details.hist-adv{padding:10px 12px;} details.hist-adv summary{font-weight:700; c
       </div>
       <button type="button" class="btn btn-outline btn-block" id="shareBackupBtn" style="margin-top:8px;">📤 Share backup file (WhatsApp / Drive)</button>
       <div id="lastBackupTxt" style="font-size:12px; color:var(--text-dim); margin-top:6px;"></div>
-      <input type="file" id="importFile" accept="application/json" style="display:none;">
+      <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" style="display:none;">
     </div>
   </div>
 
@@ -1023,12 +1089,10 @@ function renderPartList(){
       </div>
       <div class="part-desc">${esc(p.desc)} <span class="mono" style="color:var(--text-dim); font-weight:400; font-size:11px;">HSN ${esc(p.hsn)}</span></div>
       <div class="part-prices">
-        <span class="lbl">Franchisee ₹</span>
-        <input type="number" step="0.01" class="price-input ${isOv?'overridden':''}" data-code="${esc(p.code)}" data-field="fbasic" value="${p.fbasic}">
-        <span class="lbl">Customer Landing ₹</span>
-        <input type="number" step="0.01" class="price-input ${isOv?'overridden':''}" data-code="${esc(p.code)}" data-field="cbasic" value="${fmt(customerLandingPrice(p.cbasic))}">
-        ${(!p.custom && isOv) ? '<button class="revert-btn" data-revert="'+esc(p.code)+'" title="Original rate par wapas jayein">↺</button>' : ''}
-        ${p.custom ? '<button class="revert-btn" data-delete="'+esc(p.code)+'" title="Is part ko list se hataayein" style="color:var(--red);">🗑</button>' : ''}
+        <label class="ptile pf"><span class="lbl">Franchisee</span><span class="pin"><b>₹</b><input type="number" step="0.01" class="price-input ${isOv?'overridden':''}" data-code="${esc(p.code)}" data-field="fbasic" value="${p.fbasic}"></span></label>
+        <label class="ptile pc"><span class="lbl">Customer landing</span><span class="pin"><b>₹</b><input type="number" step="0.01" class="price-input ${isOv?'overridden':''}" data-code="${esc(p.code)}" data-field="cbasic" value="${fmt(customerLandingPrice(p.cbasic))}"></span></label>
+        ${(!p.custom && isOv) ? '<button class="revert-btn" data-revert="'+esc(p.code)+'" title="Original rate par wapas jayein">↺ Reset price</button>' : ''}
+        ${p.custom ? '<button class="revert-btn" data-delete="'+esc(p.code)+'" title="Is part ko list se hataayein" style="color:var(--red);">🗑 Remove part</button>' : ''}
       </div>`;
     list.appendChild(div);
   });
@@ -1162,13 +1226,7 @@ function renderItems(){
     div.innerHTML = `
       <span class="idx">#${idx+1}</span>
       <button class="remove" type="button" data-remove="${idx}" title="Remove">✕</button>
-      <div class="autocomplete">
-        <div class="field" style="margin-bottom:6px;">
-          <label>Search Part Code / Description (or leave blank to enter manually)</label>
-          <input type="text" class="ac-input" data-idx="${idx}" value="${esc(it.code || '')}" placeholder="Type part code or name…" autocomplete="off">
-        </div>
-        <div class="ac-results" data-idx="${idx}"></div>
-      </div>
+      ${it.code ? '<div class="it-code mono">'+esc(it.code)+'</div>' : '<div class="it-code" style="color:var(--text-dim)">Manual item</div>'}
       <div class="field" style="margin-bottom:0;">
         <label>Description</label>
         <input type="text" class="it-desc" data-idx="${idx}" value="${esc(it.desc || '')}" placeholder="Item description">
@@ -1256,33 +1314,50 @@ document.addEventListener('click', (e)=>{
   }
 });
 
+let discountSource = 'pct'; // which discount box the user typed in: 'pct' or 'amt'
 function renderTotals(){
   const gst = computeGst();
   let rawTaxable = 0;
   currentItems.forEach(it=>{ rawTaxable += itemTaxable(it); });
-  const discountPct = parseFloat(document.getElementById('invoiceDiscount').value)||0;
-  const discountAmt = rawTaxable * discountPct / 100;
-  const taxable = rawTaxable - discountAmt;
+  const pctEl = document.getElementById('invoiceDiscount'), amtEl = document.getElementById('invoiceDiscountAmt');
+  let discountPct, discountAmt;
+  if(discountSource === 'amt'){
+    discountAmt = Math.min(Math.max(parseFloat(amtEl.value)||0, 0), rawTaxable);
+    discountPct = rawTaxable > 0 ? discountAmt / rawTaxable * 100 : 0;
+    pctEl.value = discountAmt > 0 ? String(Math.round(discountPct*100)/100) : '';
+  } else {
+    discountPct = Math.min(Math.max(parseFloat(pctEl.value)||0, 0), 100);
+    discountAmt = rawTaxable * discountPct / 100;
+    amtEl.value = discountAmt > 0 ? discountAmt.toFixed(2) : '';
+  }
+  const serviceAmt = Math.max(parseFloat((document.getElementById('svcAmt')||{}).value)||0, 0);
+  const serviceDesc = (((document.getElementById('svcDesc')||{}).value)||'').trim() || 'Service Charges';
+  const itemsAfter = rawTaxable - discountAmt;
+  const taxable = itemsAfter + serviceAmt;   // GST base; GST is 0 on Without-GST bills
   const cgstAmt = taxable*gst.cgst/100, sgstAmt = taxable*gst.sgst/100, igstAmt = taxable*gst.igst/100;
   const grand = taxable + cgstAmt + sgstAmt + igstAmt;
   const rounded = Math.round(grand);
   const roundOff = rounded - grand;
+  const dShow = Math.round(discountPct*100)/100;
   const box = document.getElementById('invoiceTotals');
   box.innerHTML = `
-    <div class="r"><span>Taxable Value (before discount)</span><span>₹${rawTaxable.toFixed(2)}</span></div>
-    ${discountPct>0 ? `<div class="r"><span>Discount @ ${discountPct}%</span><span>−₹${discountAmt.toFixed(2)}</span></div>
-    <div class="r"><span>Taxable Value (after discount)</span><span>₹${taxable.toFixed(2)}</span></div>` : ''}
+    <div class="r"><span>Taxable Value${discountAmt>0?' (before discount)':''}</span><span>₹${rawTaxable.toFixed(2)}</span></div>
+    ${discountAmt>0 ? `<div class="r"><span>Discount @ ${dShow}%</span><span>−₹${discountAmt.toFixed(2)}</span></div>
+    <div class="r"><span>Taxable Value (after discount)</span><span>₹${itemsAfter.toFixed(2)}</span></div>` : ''}
+    ${serviceAmt>0 ? `<div class="r"><span>${esc(serviceDesc)}</span><span>+₹${serviceAmt.toFixed(2)}</span></div>` : ''}
     ${gst.gstOn ? (gst.intra ? `<div class="r"><span>CGST @ ${gst.cgst}%</span><span>₹${cgstAmt.toFixed(2)}</span></div>
     <div class="r"><span>SGST @ ${gst.sgst}%</span><span>₹${sgstAmt.toFixed(2)}</span></div>`
     : `<div class="r"><span>IGST @ ${gst.igst}%</span><span>₹${igstAmt.toFixed(2)}</span></div>`) : ''}
     <div class="r"><span>Round off</span><span>₹${roundOff.toFixed(2)}</span></div>
     <div class="r grand"><span>Total Invoice Value</span><span>₹${rounded.toFixed(2)}</span></div>
   `;
-  return { rawTaxable, discountPct, discountAmt, taxable, cgstAmt, sgstAmt, igstAmt, rounded, gst };
+  return { rawTaxable, discountPct, discountAmt, discountMode: discountSource, serviceAmt, serviceDesc, taxable, cgstAmt, sgstAmt, igstAmt, rounded, gst };
 }
 
 document.getElementById('buyerState').addEventListener('input', renderTotals);
-document.getElementById('invoiceDiscount').addEventListener('input', renderTotals);
+document.getElementById('invoiceDiscount').addEventListener('input', ()=>{ discountSource = 'pct'; renderTotals(); });
+document.getElementById('invoiceDiscountAmt').addEventListener('input', ()=>{ discountSource = 'amt'; renderTotals(); });
+['svcAmt','svcDesc'].forEach(id=>document.getElementById(id).addEventListener('input', renderTotals));
 document.getElementById('gstToggle').addEventListener('change', renderTotals);
 
 let invoiceMode = 'normal'; // 'normal' | 'gst'
@@ -1296,6 +1371,8 @@ function setInvoiceMode(mode){
   if(isGst){
     document.getElementById('gstToggle').value = 'with';
     document.getElementById('invoiceDiscount').value = '';
+    document.getElementById('invoiceDiscountAmt').value = '';
+    discountSource = 'pct';
   }
 }
 
@@ -1312,10 +1389,14 @@ function resetInvoiceForm(){
   document.getElementById('invoiceNo').value = autoInvoiceNo;
   document.getElementById('invoiceDate').value = localTodayISO();
   document.getElementById('invoiceDiscount').value = '';
+  document.getElementById('invoiceDiscountAmt').value = '';
+  discountSource = 'pct';
+  document.getElementById('svcDesc').value = '';
+  document.getElementById('svcAmt').value = '';
   document.getElementById('gstToggle').value = invoiceMode === 'gst' ? 'with' : 'without';
   document.getElementById('showTermsToggle').checked = true;
   document.getElementById('warrantyMonths').value = '3';
-  currentItems = [newItem()];
+  currentItems = [];
   editingIndex = null;
   document.getElementById('saveInvoiceBtn').textContent = 'Save Invoice';
   renderItems();
@@ -1486,7 +1567,7 @@ function openReviewModal(action){
       <div class="review-desc">${esc(it.desc)}${it.code?' <span class="mono" style="color:var(--text-dim); font-weight:400;">('+esc(it.code)+')</span>':''}</div>
       <div class="review-calc">Qty ${it.qty} &times; <span class="review-rate">₹${fmt(it.rate)}</span>${it.taxIncl?' (tax incl.)':''} = <b>₹${fmt(amt)}</b></div>
     </div>`;
-  }).join('');
+  }).join('') + (pendingInvoice.totals.serviceAmt > 0 ? `<div class="review-row"><div class="review-desc">${esc(pendingInvoice.totals.serviceDesc)}</div><div class="review-calc">Service charge = <b>₹${fmt(pendingInvoice.totals.serviceAmt)}</b>${pendingInvoice.totals.gst.gstOn ? ' (+ GST)' : ''}</div></div>` : '');
   document.getElementById('reviewTotal').textContent = '₹' + fmt(pendingInvoice.totals.rounded);
   document.getElementById('reviewModal').style.display = 'flex';
 }
@@ -1581,8 +1662,9 @@ function invoiceHtml(inv){
       <tbody>${rows}</tbody>
       <tfoot>
         <tr class="totalrow"><td colspan="5" class="num">Taxable Value${(inv.totals.discountPct>0) ? ' (before discount)' : ''}</td><td class="num">${fmt(inv.totals.rawTaxable ?? inv.totals.taxable)}</td></tr>
-        ${(inv.totals.discountPct>0) ? `<tr><td colspan="5" class="num">Discount @ ${inv.totals.discountPct}%</td><td class="num">−${fmt(inv.totals.discountAmt)}</td></tr>
-        <tr class="totalrow"><td colspan="5" class="num">Taxable Value (after discount)</td><td class="num">${fmt(inv.totals.taxable)}</td></tr>` : ''}
+        ${(inv.totals.discountPct>0) ? `<tr><td colspan="5" class="num">Discount @ ${Math.round(inv.totals.discountPct*100)/100}%</td><td class="num">−${fmt(inv.totals.discountAmt)}</td></tr>
+        <tr class="totalrow"><td colspan="5" class="num">Taxable Value (after discount)</td><td class="num">${fmt(inv.totals.taxable - (inv.totals.serviceAmt||0))}</td></tr>` : ''}
+        ${(inv.totals.serviceAmt>0) ? `<tr><td colspan="5" class="num">${esc(inv.totals.serviceDesc||'Service Charges')}</td><td class="num">${fmt(inv.totals.serviceAmt)}</td></tr>` : ''}
         ${gstOn ? (gst.intra ? `<tr><td colspan="5" class="num">CGST @ ${gst.cgst}%</td><td class="num">${fmt(inv.totals.cgstAmt)}</td></tr>
         <tr><td colspan="5" class="num">SGST @ ${gst.sgst}%</td><td class="num">${fmt(inv.totals.sgstAmt)}</td></tr>`
         : `<tr><td colspan="5" class="num">IGST @ ${gst.igst}%</td><td class="num">${fmt(inv.totals.igstAmt)}</td></tr>`) : ''}
@@ -1868,12 +1950,16 @@ function renderInvoicePdfContent(pdf, inv, opts){
     }
 
     // ---- Totals (all in one bordered table) ----
-    ensureSpace(45);
+    ensureSpace(65);
     const boxRows = [];
+    const svcAmt = inv.totals.serviceAmt || 0;
+    const plainTaxable = !(inv.totals.discountPct > 0);
+    if(svcAmt > 0 && plainTaxable) boxRows.push(['Taxable Value', fmt(inv.totals.taxable - svcAmt), false]);
     if(inv.totals.discountPct > 0){
       boxRows.push(['Taxable Value (before discount)', fmt(inv.totals.rawTaxable ?? inv.totals.taxable), false]);
-      boxRows.push(['Discount @ '+inv.totals.discountPct+'%', '-'+fmt(inv.totals.discountAmt), false]);
+      boxRows.push(['Discount @ '+(Math.round(inv.totals.discountPct*100)/100)+'%', '-'+fmt(inv.totals.discountAmt), false]);
     }
+    if(svcAmt > 0) boxRows.push([String(inv.totals.serviceDesc || 'Service Charges').slice(0,24), fmt(svcAmt), false]);
     if(gstOn){
       if(gst.intra){
         boxRows.push(['CGST @ '+gst.cgst+'%', fmt(inv.totals.cgstAmt), false]);
@@ -1882,12 +1968,7 @@ function renderInvoicePdfContent(pdf, inv, opts){
         boxRows.push(['IGST @ '+gst.igst+'%', fmt(inv.totals.igstAmt), false]);
       }
     }
-    // Only show a plain "Taxable Value" row when there was no discount —
-    // with a discount the box already carries "Taxable Value (before)" and
-    // "Taxable Value (after)", and a third bare row was confusing/duplicated.
-    if(!(inv.totals.discountPct > 0)){
-      boxRows.push(['Taxable Value', fmt(inv.totals.taxable), false]);
-    }
+    if(plainTaxable && !(svcAmt > 0)) boxRows.push(['Taxable Value', fmt(inv.totals.taxable), false]);
     boxRows.push(['TOTAL INVOICE VALUE', 'Rs. ' + fmt(inv.totals.rounded), true]);
 
     const boxW = 78, rowH = 7.2;
@@ -2140,7 +2221,7 @@ function renderHistory(){
       <div class="hist-actions">
         <button class="btn btn-outline" data-view="${inv.id}">👁 View</button>
         <button class="btn btn-outline" data-edit="${inv.id}">✏️ Edit</button>
-        ${(typeof prefOn==='function' && prefOn('whatsapp')) ? `<button class="btn btn-outline" data-wa="${inv.id}" title="WhatsApp">💬</button>` : ''}
+        <button class="btn btn-outline" data-wa="${inv.id}" title="WhatsApp">💬</button>
         <button class="btn btn-danger" data-del="${inv.id}">Delete</button>
       </div>`;
     box.appendChild(div);
@@ -2205,7 +2286,17 @@ function loadInvoiceForEdit(idx){
   document.getElementById('buyerState').value = inv.buyer.stateCode || '06';
   document.getElementById('invoiceNo').value = inv.invoiceNo || '';
   document.getElementById('invoiceDate').value = inv.date || '';
-  document.getElementById('invoiceDiscount').value = inv.totals.discountPct || '';
+  if(inv.totals.discountMode === 'amt'){
+    discountSource = 'amt';
+    document.getElementById('invoiceDiscountAmt').value = inv.totals.discountAmt || '';
+    document.getElementById('invoiceDiscount').value = '';
+  } else {
+    discountSource = 'pct';
+    document.getElementById('invoiceDiscount').value = inv.totals.discountPct ? String(Math.round(inv.totals.discountPct*10000)/10000) : '';
+    document.getElementById('invoiceDiscountAmt').value = '';
+  }
+  document.getElementById('svcDesc').value = (inv.totals.serviceAmt > 0) ? (inv.totals.serviceDesc || '') : '';
+  document.getElementById('svcAmt').value = (inv.totals.serviceAmt > 0) ? inv.totals.serviceAmt : '';
   document.getElementById('gstToggle').value = (inv.totals.gst && inv.totals.gst.gstOn===false) ? 'without' : 'with';
   document.getElementById('showTermsToggle').checked = inv.showTerms !== false;
   document.getElementById('warrantyMonths').value = (inv.warrantyMonths !== undefined && inv.warrantyMonths !== null) ? inv.warrantyMonths : 3;
@@ -2754,7 +2845,7 @@ if('serviceWorker' in navigator){
 /* ===================== v2 additions ===================== */
 (function(){
   const PK='sss_ui_prefs';
-  const DEF={theme:'light',accent:'indigo',discount:true,billtype:true,warranty:true,taxincl:true,pdfbtns:true,venus:true,excel:true,pinLock:true,font:'normal',dashboard:true,autofill:true,filters:true,whatsapp:true,backupRemind:true,lastBackup:0};
+  const DEF={theme:'light',accent:'indigo',discount:true,billtype:true,warranty:true,taxincl:true,venus:true,excel:true,pinLock:true,font:'normal',dashboard:true,autofill:true,filters:true,lastBackup:0};
   let prefs=Object.assign({},DEF);
   try{ prefs=Object.assign({},DEF,JSON.parse(localStorage.getItem(PK)||'{}')); }catch(e){}
   function savePrefs(){ try{ localStorage.setItem(PK,JSON.stringify(prefs)); }catch(e){} }
@@ -2767,20 +2858,18 @@ if('serviceWorker' in navigator){
     document.documentElement.classList.toggle('dark',!!dark);
     document.documentElement.classList.toggle('fs-lg',prefs.font==='large');
     document.documentElement.setAttribute('data-accent',prefs.accent||'indigo');
-    ['discount','billtype','warranty','taxincl','pdfbtns','venus','excel'].forEach(k=>document.documentElement.classList.toggle('off-'+k,prefs[k]===false));
+    ['discount','billtype','warranty','taxincl','venus','excel'].forEach(k=>document.documentElement.classList.toggle('off-'+k,prefs[k]===false));
     document.documentElement.classList.toggle('nopin',prefs.pinLock===false);
     $('dashCard').style.display=prefs.dashboard?'':'none';
     $('histAdv').style.display=prefs.filters?'':'none';
-    const chat=$('pdfViewChatBtn'); if(chat) chat.style.display=prefs.whatsapp?'':'none';
-    $('buyerName').setAttribute('list',prefs.autofill?'custList':'');
-    if(!prefs.autofill) $('buyerName').removeAttribute('list');
+    if(prefs.autofill) $('buyerMobile').setAttribute('list','custList'); else $('buyerMobile').removeAttribute('list');
   }
   if(mq&&mq.addEventListener) mq.addEventListener('change',applyPrefs);
 
   /* ---- Settings controls ---- */
   function bindPrefs(){
     $('prefTheme').value=prefs.theme; $('prefFont').value=prefs.font;
-    [['prefDashboard','dashboard'],['prefAutofill','autofill'],['prefFilters','filters'],['prefWhatsapp','whatsapp'],['prefBackupRemind','backupRemind'],['prefBilltype','billtype'],['prefDiscount','discount'],['prefWarranty','warranty'],['prefTaxincl','taxincl'],['prefPdfbtns','pdfbtns'],['prefVenus','venus'],['prefExcel','excel']]
+    [['prefDashboard','dashboard'],['prefAutofill','autofill'],['prefFilters','filters'],['prefBilltype','billtype'],['prefDiscount','discount'],['prefWarranty','warranty'],['prefTaxincl','taxincl'],['prefVenus','venus'],['prefExcel','excel']]
       .forEach(([id,k])=>{ $(id).checked=!!prefs[k]; $(id).addEventListener('change',()=>{ prefs[k]=$(id).checked; savePrefs(); applyPrefs(); renderHistory(); }); });
     $('prefAccent').value=prefs.accent||'indigo';
     $('prefAccent').addEventListener('change',()=>{ prefs.accent=$('prefAccent').value; savePrefs(); applyPrefs(); });
@@ -2796,33 +2885,67 @@ if('serviceWorker' in navigator){
     $('prefFont').addEventListener('change',()=>{ prefs.font=$('prefFont').value; savePrefs(); applyPrefs(); });
   }
 
-  /* ---- Customer auto-fill (built from saved bills, so it syncs across devices) ---- */
+  /* ---- Customer auto-fill (by mobile number, built from saved bills) ---- */
   const dl=document.createElement('datalist'); dl.id='custList'; document.body.appendChild(dl);
+  const last10=v=>String(v||'').replace(/\D/g,'').slice(-10);
   function customerMap(){
     const m=new Map();
     invoices.forEach(inv=>{
-      if(!inv||!inv.buyer||!inv.buyer.name||!inv.buyer.name.trim()) return;
-      const k=inv.buyer.name.trim().toLowerCase(), t=Number(inv.id)||0, cur=m.get(k);
-      if(!cur||t>cur.t) m.set(k,{t,b:inv.buyer});
+      const b=inv&&inv.buyer; if(!b) return;
+      if(String(b.mobile||'').replace(/\D/g,'').length<10) return;
+      const k=last10(b.mobile), t=Number(inv.id)||0, cur=m.get(k);
+      if(!cur||t>cur.t) m.set(k,{t,b});
     });
     return m;
   }
   function refreshCustList(){
-    dl.innerHTML=Array.from(customerMap().values()).sort((a,b)=>b.t-a.t).slice(0,300)
-      .map(c=>'<option value="'+esc(c.b.name.trim())+'"></option>').join('');
+    dl.innerHTML=Array.from(customerMap().entries()).sort((a,b)=>b[1].t-a[1].t).slice(0,300)
+      .map(([k,c])=>'<option value="'+k+'" label="'+esc(c.b.name||'')+'"></option>').join('');
   }
+  let lastAuto={};
   function fillCustomer(){
     if(!prefs.autofill) return;
-    const name=$('buyerName').value.trim().toLowerCase(); if(!name) return;
-    const c=customerMap().get(name); if(!c) return;
-    const map=[['buyerMobile','mobile'],['buyerAddress','address'],['buyerGstin','gstin'],['buyerState','stateCode']];
+    if($('buyerMobile').value.replace(/\D/g,'').length<10) return;
+    const c=customerMap().get(last10($('buyerMobile').value)); if(!c) return;
     let n=0;
-    map.forEach(([id,k])=>{ const el=$(id); if(el&&!el.value.trim()&&c.b[k]){ el.value=c.b[k]; n++; } });
+    [['buyerName','name'],['buyerAddress','address'],['buyerGstin','gstin'],['buyerState','stateCode']].forEach(([id,key])=>{
+      const el=$(id), v=c.b[key]; if(!el||!v) return;
+      const cur=el.value.trim();
+      if(!cur||cur===lastAuto[id]||(id==='buyerState'&&cur==='06')){ if(cur!==v){ el.value=v; n++; } lastAuto[id]=v; }
+    });
     if(n) toast('Customer details filled');
   }
-  $('buyerName').addEventListener('focus',refreshCustList);
-  $('buyerName').addEventListener('change',fillCustomer);
-  $('buyerName').addEventListener('blur',fillCustomer);
+  $('buyerMobile').addEventListener('focus',refreshCustList);
+  ['input','change','blur'].forEach(ev=>$('buyerMobile').addEventListener(ev,fillCustomer));
+
+  /* ---- One search box: tap many parts, each is added to the bill ---- */
+  const isearch=$('itemSearch'), ires=$('itemSearchResults');
+  function renderItemResults(){
+    const q=isearch.value.trim();
+    if(!q){ ires.innerHTML=''; return; }
+    const matches=PARTS_CACHE.filter(p=>matchesQuery(p.code+' '+p.desc,q)).slice(0,30);
+    const added={}; let n=0;
+    currentItems.forEach(it=>{ if(it.code){ added[it.code]=(added[it.code]||0)+(+it.qty||0); n++; } });
+    ires.innerHTML='<div class="ms-list"><div class="ms-head"><span>'+matches.length+' found · tap to add</span><button type="button" class="ms-done" id="itemSearchDone">Done'+(n?' ('+n+' added)':'')+'</button></div>'+
+      (matches.length?matches.map(m=>'<div class="ms-item'+(added[m.code]?' on':'')+'" data-code="'+esc(m.code)+'"><div><span class="mono ms-code">'+esc(m.code)+'</span> '+esc(m.desc)+'<div class="ms-price">₹'+fmt(customerLandingPrice(m.cbasic))+'</div></div><span class="ms-tick">'+(added[m.code]?'✓ ×'+added[m.code]:'＋')+'</span></div>').join(''):'<div class="ms-empty">No parts match</div>')+'</div>';
+  }
+  function addPartToInvoice(code){
+    const p=findPart(code); if(!p) return;
+    const ex=currentItems.find(it=>it.code===p.code);
+    if(ex){ ex.qty=(+ex.qty||0)+1; }
+    else{
+      const item={code:p.code,desc:p.desc,hsn:p.hsn,qty:1,rate:round2(customerLandingPrice(p.cbasic)),manual:false,taxIncl:true};
+      const blank=currentItems.findIndex(it=>!it.code&&!it.desc);
+      if(blank>-1) currentItems[blank]=item; else currentItems.push(item);
+    }
+    renderItems(); renderItemResults();
+  }
+  isearch.addEventListener('input',renderItemResults);
+  ires.addEventListener('click',e=>{
+    if(e.target.closest('#itemSearchDone')){ ires.innerHTML=''; isearch.value=''; return; }
+    const row=e.target.closest('.ms-item'); if(row) addPartToInvoice(row.dataset.code);
+  });
+  document.addEventListener('click',e=>{ if(e.target.isConnected && !e.target.closest('.multi-search')) ires.innerHTML=''; });
 
   /* ---- History advanced filters ---- */
   window.getHistFilters=function(){
@@ -2881,19 +3004,20 @@ if('serviceWorker' in navigator){
   /* ---- Backup: share file + reminder ---- */
   function backupText(){ const t=prefs.lastBackup; $('lastBackupTxt').textContent=t?('Last backup: '+new Date(t).toLocaleString()):'No backup taken from this device yet.'; }
   $('exportBtn').addEventListener('click',()=>{ prefs.lastBackup=Date.now(); savePrefs(); backupText(); });
-  $('shareBackupBtn').addEventListener('click',()=>{
-    const data={settings,overrides,customParts,invoices,exportedAt:new Date().toISOString()};
-    const name='sss-invoice-backup-'+new Date().toISOString().slice(0,10)+'.json';
-    const file=new File([JSON.stringify(data,null,2)],name,{type:'application/json'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){
-      navigator.share({files:[file],title:'Invoice backup'}).then(()=>{ prefs.lastBackup=Date.now(); savePrefs(); backupText(); }).catch(()=>{});
-    } else { $('exportBtn').click(); }
+  $('shareBackupBtn').addEventListener('click',async()=>{
+    const text=JSON.stringify({settings,overrides,customParts,invoices,exportedAt:new Date().toISOString()});
+    const base='sss-invoice-backup-'+new Date().toISOString().slice(0,10);
+    const done=()=>{ prefs.lastBackup=Date.now(); savePrefs(); backupText(); };
+    // Android only lets apps share certain file types (.json is refused), so the backup is shared as a plain .txt file.
+    try{
+      const file=new File([text],base+'.txt',{type:'text/plain'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'Invoice backup'}); done(); return; }
+    }catch(e){ if(e&&e.name==='AbortError') return; }
+    try{
+      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download=base+'.txt';
+      document.body.appendChild(a); a.click(); a.remove(); done(); toast('Backup file saved to Downloads');
+    }catch(e){ toast('⚠ Could not share or save the backup file'); }
   });
-  setTimeout(()=>{
-    if(prefs.backupRemind && invoices.length>0 && Date.now()-(prefs.lastBackup||0)>7*864e5){
-      toast('💾 Backup is over 7 days old — take one in Settings');
-    }
-  },4000);
 
   /* ---- Sync status, manual retry, auto retry ---- */
   let lastState='syncing', lastSync=0;
