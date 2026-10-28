@@ -77,8 +77,19 @@ function currentFY(){
   const last2 = n => String(n % 100).padStart(2, '0');
   return last2(startYear) + '-' + last2(startYear + 1);
 }
-function resolvePrefix(template){
-  return (template || '').replace(/MM/g, currentMonthMM()).replace(/FY/g, currentFY());
+function resolvePrefix(template, dateISO){
+  // MM / FY follow the BILL DATE (so a back-dated bill automatically gets its
+  // own month in the number); with no date they follow today.
+  let d = new Date();
+  if(dateISO && /^\d{4}-\d{2}-\d{2}/.test(dateISO)){
+    const t = new Date(dateISO.slice(0,10) + 'T00:00:00');
+    if(!isNaN(t)) d = t;
+  }
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const y = d.getFullYear();
+  const sy = (d.getMonth() + 1 >= 4) ? y : y - 1;
+  const l2 = n => String(n % 100).padStart(2, '0');
+  return (template || '').replace(/MM/g, mm).replace(/FY/g, l2(sy) + '-' + l2(sy + 1));
 }
 // Local (device-timezone) "today" as YYYY-MM-DD. Never use toISOString() for
 // invoice dates — that returns the UTC date, which in India (UTC+5:30) is
@@ -126,6 +137,52 @@ function migrateAddFY(str){
 let overrides = LS.get('sss_price_overrides', {});     // {code: {fbasic, cbasic}}
 let customParts = LS.get('sss_custom_parts', []);       // [[code,hsn,cat,desc,fbasic,cbasic], ...]
 let invoices = LS.get('sss_invoices', []);
+
+/* ---- Bill-number helpers (sequence part = the number after the last "/") ----
+   The sequence number is what must never repeat, whatever the month/FY text in
+   front of it says. Normal bills count across all years; GST bills only inside
+   the current financial year (they restart every 1 April). */
+function seqOf(no){
+  if(!no) return 0;
+  const n = parseInt(String(no).split('/').pop(), 10);
+  return isNaN(n) ? 0 : n;
+}
+function fyOfDateStr(dateStr){
+  const d = dateStr ? new Date(dateStr) : null;
+  if(!d || isNaN(d)) return currentFY();
+  const y = d.getFullYear();
+  const sy = (d.getMonth() + 1 >= 4) ? y : y - 1;
+  const l2 = n => String(n % 100).padStart(2, '0');
+  return l2(sy) + '-' + l2(sy + 1);
+}
+function seqInScope(inv, type){
+  if(!inv) return false;
+  if(((inv.type === 'gst') ? 'gst' : 'normal') !== type) return false;
+  if(type === 'gst' && fyOfDateStr(inv.date) !== currentFY()) return false;
+  return true;
+}
+function histMaxSeq(type){
+  let m = 0;
+  (Array.isArray(invoices) ? invoices : []).forEach(inv=>{
+    if(!seqInScope(inv, type)) return;
+    const n = seqOf(inv.invoiceNo); if(n > m) m = n;
+  });
+  return m;
+}
+function seqUsed(type, seq, ignoreIdx){
+  if(!seq) return false;
+  return invoices.some((inv, i)=> i !== ignoreIdx && seqInScope(inv, type) && seqOf(inv.invoiceNo) === seq);
+}
+// Moves the local "next number" forward to continue after every bill in History.
+// Never moves it backwards.
+function reconcileNextNumbers(){
+  let changed = false;
+  const hn = histMaxSeq('normal') + 1, hg = histMaxSeq('gst') + 1;
+  if(hn > (parseInt(settings.nextNum)||1)){ settings.nextNum = hn; changed = true; }
+  if(hg > (parseInt(settings.gstNextNum)||1)){ settings.gstNextNum = hg; changed = true; }
+  if(changed) LS.set('sss_settings', settings);
+  return changed;
+}
 
 /* ---- Sync fixes ----
    1) stripInvSnapshot: old bills carried a full copy of settings (signature
@@ -211,37 +268,7 @@ setTimeout(function(){
 // each 1 April), so old high numbers from a previous year never override
 // a fresh reset. Normal Invoice numbering is NOT FY-scoped — it counts
 // continuously across every financial year, so ALL history counts there.
-(function reconcileNextNumbersWithHistory(){
-  function extractSeqNumber(invoiceNo){
-    if(!invoiceNo) return 0;
-    const last = invoiceNo.split('/').pop();
-    const n = parseInt(last, 10);
-    return isNaN(n) ? 0 : n;
-  }
-  function fyOfDate(dateStr){
-    const d = dateStr ? new Date(dateStr) : null;
-    if(!d || isNaN(d)) return currentFY(); // unknown date — assume current FY, safer than ignoring it
-    const y = d.getFullYear();
-    const startYear = (d.getMonth() + 1 >= 4) ? y : y - 1;
-    const last2 = n => String(n % 100).padStart(2, '0');
-    return last2(startYear) + '-' + last2(startYear + 1);
-  }
-  const thisFY = currentFY();
-  let maxNormal = 0, maxGst = 0;
-  invoices.forEach(inv=>{
-    const type = (inv.type === 'gst' || inv.type === 'normal') ? inv.type : 'normal';
-    if(type === 'gst' && fyOfDate(inv.date) !== thisFY) return; // GST: different financial year — doesn't count
-    const n = extractSeqNumber(inv.invoiceNo);
-    if(type === 'gst'){ if(n > maxGst) maxGst = n; }
-    else{ if(n > maxNormal) maxNormal = n; } // Normal: counts across all financial years
-  });
-  const histNextNormal = maxNormal + 1;
-  const histNextGst = maxGst + 1;
-  let changed = false;
-  if(histNextNormal > (parseInt(settings.nextNum)||1)){ settings.nextNum = histNextNormal; changed = true; }
-  if(histNextGst > (parseInt(settings.gstNextNum)||1)){ settings.gstNextNum = histNextGst; changed = true; }
-  if(changed) LS.set('sss_settings', settings);
-})();
+reconcileNextNumbers();
 
 (function migrateSettingsPrefixes(){
   let changed = false;
@@ -803,17 +830,32 @@ function setInvoiceMode(mode){
 }
 
 let autoInvoiceNo = '';
+function autoNoFor(mode, dateISO){
+  const seq = parseInt(mode === 'gst' ? settings.gstNextNum : settings.nextNum) || 1;
+  const tpl = mode === 'gst' ? settings.gstPrefix : settings.prefix;
+  return resolvePrefix(tpl || '', dateISO) + padSeq(seq);
+}
+// Keeps the number shown in the form fresh (after a sync, or when the bill date
+// changes) — but only while the person has NOT typed their own number.
+function refreshAutoInvoiceNumber(){
+  const f = document.getElementById('invoiceNo');
+  const d = document.getElementById('invoiceDate');
+  if(!f || !d || editingIndex !== null) return;
+  if(f.value.trim() !== autoInvoiceNo) return;
+  autoInvoiceNo = autoNoFor(invoiceMode, d.value);
+  f.value = autoInvoiceNo;
+}
+document.getElementById('invoiceDate').addEventListener('change', refreshAutoInvoiceNumber);
+document.getElementById('invoiceDate').addEventListener('input', refreshAutoInvoiceNumber);
 function resetInvoiceForm(){
   document.getElementById('buyerName').value='';
   document.getElementById('buyerMobile').value='';
   document.getElementById('buyerAddress').value='';
   document.getElementById('buyerGstin').value='';
   document.getElementById('buyerState').value='06';
-  autoInvoiceNo = invoiceMode==='gst'
-    ? resolvePrefix(settings.gstPrefix||'') + padSeq(settings.gstNextNum)
-    : resolvePrefix(settings.prefix||'') + padSeq(settings.nextNum);
-  document.getElementById('invoiceNo').value = autoInvoiceNo;
   document.getElementById('invoiceDate').value = localTodayISO();
+  autoInvoiceNo = autoNoFor(invoiceMode, localTodayISO());
+  document.getElementById('invoiceNo').value = autoInvoiceNo;
   document.getElementById('invoiceDiscount').value = '';
   document.getElementById('invoiceDiscountAmt').value = '';
   discountSource = 'pct';
@@ -895,25 +937,52 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     }
   }
 
-  // Sequential & multi-device protection: only re-allocate atomically when the
-  // number on screen is still the auto-suggested one (i.e. user hasn't typed a custom number)
-  if(editingIndex === null && finalInvoiceNo === autoInvoiceNo){
-    if(invoiceMode === 'gst' && (!cloudDb || !cloudOnline) && !confirm('You are offline. Another device may issue the same GST invoice number. Save anyway?')){
-      saveBtn.disabled = false; saveBtn.textContent = saveBtnLabel; return;
+  // Sequential & multi-device protection.
+  // - Number on screen is still the auto one -> reserve it from the cloud counter
+  //   (atomic, two phones can never get the same number).
+  // - Person typed / edited the number -> keep it, but warn if the same
+  //   sequence number is already used by another bill (even with another month).
+  const seqType = invoiceMode === 'gst' ? 'gst' : 'normal';
+  const billDate = document.getElementById('invoiceDate').value;
+  const isAutoNumber = (editingIndex === null && finalInvoiceNo === autoInvoiceNo);
+  const origNo = (editingIndex !== null && invoices[editingIndex]) ? invoices[editingIndex].invoiceNo : null;
+  const stopSave = ()=>{ saveBtn.disabled = false; saveBtn.textContent = saveBtnLabel; };
+
+  if(!isAutoNumber && finalInvoiceNo && finalInvoiceNo !== origNo){
+    const s = seqOf(finalInvoiceNo);
+    if(s && seqUsed(seqType, s, editingIndex)){
+      const other = invoices.find((inv, i)=> i !== editingIndex && seqInScope(inv, seqType) && seqOf(inv.invoiceNo) === s);
+      if(!confirm('⚠ Sequence number ' + s + ' is already used by bill ' + (other && other.invoiceNo ? other.invoiceNo : '?') + '.\n\nTwo bills with the same number will exist. Save anyway?')){ stopSave(); return; }
     }
-    saveBtn.textContent = 'Reserving number…';
-    try{
-      const allocated = await nextInvoiceNumber(invoiceMode);
-      const prefix = invoiceMode==='gst' ? resolvePrefix(settings.gstPrefix||'') : resolvePrefix(settings.prefix||'');
-      finalInvoiceNo = prefix + padSeq(allocated);
-      invoiceNoField.value = finalInvoiceNo;
-      if(invoiceMode === 'gst') settings.gstNextNum = allocated + 1;
-      else settings.nextNum = allocated + 1;
-      numberWasAutoAllocated = true;
-    }catch(e){
-      console.warn('Sequential lock unavailable, falling back to local numbering', e);
-      toast('⚠ Offline — number not multi-device protected this time');
+  }
+
+  if(isAutoNumber){
+    const prefix = resolvePrefix(invoiceMode === 'gst' ? (settings.gstPrefix||'') : (settings.prefix||''), billDate);
+    const cloudReady = !!(cloudDb && cloudOnline);
+    let allocated = null;
+    if(!cloudReady){
+      if(!confirm('Cloud is not connected. The other phone may issue the same bill number.\n\nSave with this phone\'s number anyway?')){ stopSave(); return; }
+    } else {
+      saveBtn.textContent = 'Reserving number…';
+      try{
+        allocated = await nextInvoiceNumber(invoiceMode);
+        let guard = 0;
+        while(seqUsed(seqType, allocated, -1) && guard++ < 50){ allocated = await nextInvoiceNumber(invoiceMode); }
+      }catch(e){
+        console.warn('Cloud number reservation failed', e);
+        allocated = null;
+        if(!confirm('Could not reserve a bill number from the cloud (' + ((e && (e.code || e.message)) || 'error') + ').\nThe other phone may issue the same number.\n\nSave with this phone\'s number anyway?')){ stopSave(); return; }
+      }
     }
+    if(allocated === null){
+      allocated = Math.max(parseInt(seqType === 'gst' ? settings.gstNextNum : settings.nextNum) || 1, histMaxSeq(seqType) + 1);
+      while(seqUsed(seqType, allocated, -1)) allocated++;
+    }
+    finalInvoiceNo = prefix + padSeq(allocated);
+    invoiceNoField.value = finalInvoiceNo;
+    if(invoiceMode === 'gst') settings.gstNextNum = Math.max(parseInt(settings.gstNextNum)||1, allocated + 1);
+    else settings.nextNum = Math.max(parseInt(settings.nextNum)||1, allocated + 1);
+    numberWasAutoAllocated = true;
   }
 
   saveBtn.textContent = 'Saving…';
@@ -947,10 +1016,14 @@ document.getElementById('saveInvoiceBtn').addEventListener('click', async ()=>{
     invoices.unshift(inv);
     LS.set('sss_invoices', invoices);
     if(!numberWasAutoAllocated){
-      if(invoiceMode === 'gst'){ settings.gstNextNum = (parseInt(settings.gstNextNum)||1) + 1; }
-      else{ settings.nextNum = (parseInt(settings.nextNum)||1) + 1; }
+      // Custom / back-dated number: only move the counter if it is ahead of it
+      // (a back-dated, lower number must NOT push the counter up).
+      const s = seqOf(inv.invoiceNo);
+      const key = invoiceMode === 'gst' ? 'gstNextNum' : 'nextNum';
+      if(s + 1 > (parseInt(settings[key])||1)) settings[key] = s + 1;
     }
     LS.set('sss_settings', settings);
+    try{ syncCounters(); }catch(e){}
     toast('✅ Invoice saved: ' + inv.invoiceNo);
   }
   saveBtn.disabled = false;
@@ -1783,7 +1856,8 @@ document.getElementById('removeSignBtn').addEventListener('click', ()=>{
 });
 
 document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{
-  settings = {
+  const prevSettings = settings;
+  settings = Object.assign({}, prevSettings, {
     companyName: document.getElementById('setCompanyName').value,
     address: document.getElementById('setAddress').value,
     contact: document.getElementById('setContact').value,
@@ -1796,9 +1870,16 @@ document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{
     nextNum: parseInt(document.getElementById('setNextNum').value)||1,
     gstPrefix: document.getElementById('setGstPrefix').value,
     gstNextNum: parseInt(document.getElementById('setGstNextNum').value)||1,
-    signatureImage: settings.signatureImage
-  };
+    signatureImage: prevSettings.signatureImage
+  });
   LS.set('sss_settings', settings);
+  // A number typed here on purpose is pushed to the shared cloud counter.
+  try{
+    if(cloudDb && cloudOnline){
+      if(settings.nextNum !== (parseInt(prevSettings.nextNum)||1)) cloudDb.ref('counters/normal').set(settings.nextNum).catch(()=>{});
+      if(settings.gstNextNum !== (parseInt(prevSettings.gstNextNum)||1)) cloudDb.ref('counters/gst').set(settings.gstNextNum).catch(()=>{});
+    }
+  }catch(e){}
   toast('Settings saved');
 });
 
@@ -1951,7 +2032,7 @@ let cloudOnline = false, initialLoaded = false, v2Ready = false;
 let invApplyTimer = null, partsApplyTimer = null;
 
 // Settings as sent to the cloud: the app-lock PIN never leaves the device.
-function cloudSettings(v){ const c = Object.assign({}, v); delete c.appPin; delete c.appPinHash; return c; }
+function cloudSettings(v){ const c = Object.assign({}, v); delete c.appPin; delete c.appPinHash; delete c.nextNum; delete c.gstNextNum; return c; }
 function stableStr(v){
   if(v === null || typeof v !== 'object') return JSON.stringify(v);
   if(Array.isArray(v)) return '[' + v.map(stableStr).join(',') + ']';
@@ -1968,6 +2049,7 @@ function scheduleInvApply(){
     invoices.sort((a,b)=>(Number(b.id)||0)-(Number(a.id)||0));
     try{ const seen = {}; invoices.forEach(x=>{ const n = x && x.invoiceNo; if(!n) return; if(seen[n] && seen[n] !== String(x.id)){ toast('⚠ Duplicate invoice number: ' + n); } seen[n] = String(x.id); }); }catch(e){}
     try{ localStorage.setItem('sss_invoices', JSON.stringify(invoices)); }catch(e){}
+    try{ reconcileNextNumbers(); refreshAutoInvoiceNumber(); syncCounters(); }catch(e){}
     if(viewActive('history')) renderHistory();
   }, 200);
 }
@@ -2010,7 +2092,7 @@ function onDelRemoved(snap){
 }
 function onSimpleRemote(kind, val){
   if(val === null || val === undefined){ cloudSimple[kind] = null; return; }
-  const str = stableStr(val);
+  const str = stableStr(kind === 'settings' ? cloudSettings(val) : val);
   if(str === cloudSimple[kind]) return;
   cloudSimple[kind] = str;
   if(kind === 'settings'){
@@ -2096,7 +2178,20 @@ function startV2Listeners(){
   cloudDb.ref('.info/connected').on('value', s=>{
     cloudOnline = !!s.val();
     setCloudStatus(cloudOnline ? (cloudSyncing ? 'syncing' : 'connected') : 'offline');
-    if(cloudOnline && initialLoaded) pushToCloud();
+    if(cloudOnline && initialLoaded){ pushToCloud(); syncCounters(); }
+  });
+  // Live bill-number counters: when the other phone takes a number, this phone's
+  // "next number" moves forward immediately.
+  ['normal','gst'].forEach(type=>{
+    cloudDb.ref('counters/' + type).on('value', s=>{
+      const v = parseInt(s.val()); if(!v) return;
+      const key = type === 'gst' ? 'gstNextNum' : 'nextNum';
+      if(v > (parseInt(settings[key])||1)){
+        settings[key] = v;
+        try{ localStorage.setItem('sss_settings', JSON.stringify(settings)); }catch(e){}
+        refreshAutoInvoiceNumber();
+      }
+    }, bad);
   });
   // Pushing waits until everything already in the cloud has been received, so a
   // fresh launch never re-uploads bills the cloud already has.
@@ -2104,6 +2199,7 @@ function startV2Listeners(){
     initialLoaded = true; firstLoadDone = true;
     setTimeout(()=>{ v2Ready = true; }, 1500);
     pushToCloud();
+    try{ reconcileNextNumbers(); refreshAutoInvoiceNumber(); syncCounters(); }catch(e){}
   }).catch(bad);
 }
 
@@ -2209,18 +2305,35 @@ function setCloudStatus(state){
    phones saving a bill at the same second can never receive the same
    invoice number. Falls back to the local settings counter when offline. */
 function nextInvoiceNumber(mode){
-  const key = mode === 'gst' ? 'gst' : 'normal';
-  const localFallback = mode === 'gst' ? (parseInt(settings.gstNextNum)||1) : (parseInt(settings.nextNum)||1);
-  if(!cloudDb){
-    return Promise.resolve(localFallback);
-  }
-  return cloudDb.ref('counters/' + key).transaction(current=>{
-    const base = (current === null || current === undefined) ? localFallback : Math.max(current, localFallback);
-    return base + 1; // value stored is the NEXT number to hand out
-  }).then(result=>{
-    if(!result.committed) return localFallback;
-    const storedNext = result.snapshot.val();
-    return storedNext - 1; // the number allocated to this invoice
+  const type = mode === 'gst' ? 'gst' : 'normal';
+  const seed = Math.max(parseInt(type === 'gst' ? settings.gstNextNum : settings.nextNum) || 1, histMaxSeq(type) + 1);
+  return new Promise((resolve, reject)=>{
+    if(!cloudDb) return reject(new Error('cloud not ready'));
+    const timer = setTimeout(()=>reject(new Error('timeout')), 12000);
+    cloudDb.ref('counters/' + type).transaction(current=>{
+      const c = parseInt(current);
+      // The cloud counter is the single source of truth; it is never allowed to
+      // sit below a bill that already exists in History.
+      const base = (isNaN(c) || c < 1) ? seed : Math.max(c, histMaxSeq(type) + 1);
+      return base + 1; // stored value = NEXT number to hand out
+    }).then(result=>{
+      clearTimeout(timer);
+      if(!result.committed) return reject(new Error('not committed'));
+      resolve(Number(result.snapshot.val()) - 1); // number given to this bill
+    }).catch(e=>{ clearTimeout(timer); reject(e); });
+  });
+}
+
+// Keeps the shared cloud counters at least one above the highest bill in History
+// (covers bills made offline, typed numbers, restored backups).
+function syncCounters(){
+  if(!cloudDb || !cloudOnline) return;
+  ['normal','gst'].forEach(type=>{
+    const want = histMaxSeq(type) + 1;
+    cloudDb.ref('counters/' + type).transaction(cur=>{
+      const c = parseInt(cur);
+      return (isNaN(c) || c < want) ? want : undefined;
+    }).catch(()=>{});
   });
 }
 
