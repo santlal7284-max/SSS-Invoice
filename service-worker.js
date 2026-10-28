@@ -1,8 +1,8 @@
 // Bump VERSION on every release so devices pick up the new files.
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE_NAME = 'sss-invoice-' + VERSION;
 const LOCAL = [
-  './', './index.html', './css/style.css?v=8', './js/images.js?v=8', './js/app.js?v=8', './js/ui.js?v=8',
+  './', './index.html', './css/style.css?v=9', './js/images.js?v=9', './js/app.js?v=9', './js/ui.js?v=9',
   './data.js', './manifest.json', './icon-192.png', './icon-512.png'
 ];
 // Third-party libraries cached too, so PDF / Excel export also works offline.
